@@ -1298,25 +1298,15 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 							case VK_DOWN:
 								SET_INPUT(INPUT_DOWN);
 							break;
-							// case VK_PRIOR:
-							// 	holding_inputs.debug_previous_level = is_down;
-							// break;
-							// case VK_NEXT:
-							// 	holding_inputs.debug_next_level = is_down;
-							// break;
-							// case VK_HOME:
-							// 	holding_inputs.debug_increase_spawn_charges = is_down;
-							// break;
 							case VK_END:
 								SET_INPUT(INPUT_END);
 							break;
-							// case VK_INSERT:
-							// 	if(is_down)
-							// 	{
-							// 		if(memory.depth_writing) memory.depth_writing = 0;
-							// 		else memory.depth_writing = 1;
-							// 	}
-							// break;
+							case VK_HOME:
+								SET_INPUT(INPUT_HOME);
+							break;
+							case VK_INSERT:
+								SET_INPUT(INPUT_INSERT);
+							break;
 							case VK_BACK:
 								SET_INPUT(INPUT_BACKSPACE);
 							break;

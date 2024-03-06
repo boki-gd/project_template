@@ -276,8 +276,11 @@ struct App_memory
 	Memory_arena* permanent_arena;
 	Memory_arena* temp_arena;
 
+	Input_keyboard_indices last_pressed_key;
+	int last_pressed_key_last_repeat_value;
 	f32 keyboard_repeat_delay;
 	f32 keyboard_repeat_cooldown;
+	
 
 	RNG rng;
 
@@ -693,6 +696,32 @@ printo_screen(App_memory* memory,Int2 screen_size, LIST(Renderer_request,render_
 	}
 }
 #endif
+
+internal b8
+holding_key(App_memory* memory, Input_keyboard_indices key)
+{
+	User_input* input = memory->input;
+	if(input->keys[key] == 1)
+	{
+		memory->last_pressed_key = key;
+		memory->last_pressed_key_last_repeat_value = 1;
+		return true;
+	}
+	else if(memory->last_pressed_key == key)
+	{
+		int frames_elapsed = input->keys[key] - memory->last_pressed_key_last_repeat_value;
+		f32 time_elapsed = frames_elapsed * memory->fixed_dt;
+		if(memory->last_pressed_key_last_repeat_value == 1)
+		{
+			return memory->keyboard_repeat_delay <= time_elapsed;
+		}
+		else
+		{
+			return memory->keyboard_repeat_cooldown <= time_elapsed;
+		}
+	}
+	return false;
+}
 
 #define PUSH_BACK_RENDER_REQUEST(render_list) \
    ASSERT(!request || request->type_flags != REQUEST_FLAG_RENDER_OBJECT || (request->color.a && request->scale.x && request->scale.y && request->scale.z));\
