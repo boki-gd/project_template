@@ -1317,6 +1317,9 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 							// 		else memory.depth_writing = 1;
 							// 	}
 							// break;
+							case VK_BACK:
+								SET_INPUT(INPUT_BACKSPACE);
+							break;
 							case VK_DELETE:
 								SET_INPUT(INPUT_DEL);
 							break;

@@ -164,6 +164,7 @@ enum Input_keyboard_indices
 	INPUT_F11,
 	INPUT_F12,
 
+	INPUT_BACKSPACE,
 	INPUT_INSERT,
 	INPUT_DEL,	
 	INPUT_HOME,
@@ -303,7 +304,6 @@ struct App_memory
 	User_input* holding_inputs;
 	u8 input_chars_buffer[64];
 	u32 input_chars_buffer_current_size;
-
 
 
 	b32 is_window_in_focus;
