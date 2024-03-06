@@ -1320,6 +1320,9 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 							case VK_BACK:
 								SET_INPUT(INPUT_BACKSPACE);
 							break;
+							case VK_RETURN:
+								SET_INPUT(INPUT_RETURN);
+							break;
 							case VK_DELETE:
 								SET_INPUT(INPUT_DEL);
 							break;

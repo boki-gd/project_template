@@ -165,6 +165,7 @@ enum Input_keyboard_indices
 	INPUT_F12,
 
 	INPUT_BACKSPACE,
+	INPUT_RETURN,
 	INPUT_INSERT,
 	INPUT_DEL,	
 	INPUT_HOME,
