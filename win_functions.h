@@ -236,7 +236,7 @@ internal Datetime
 win_get_current_date()
 {
 	SYSTEMTIME systemtime;
-	GetSystemTime(&systemtime);
+	GetLocalTime(&systemtime);
 	return win_systemtime_to_date(&systemtime);
 }
 
