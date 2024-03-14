@@ -46,7 +46,12 @@ PS_OUTPUT_DEFAULT ps( VS_OUTPUT_DEFAULT input, uint tid : SV_PrimitiveID)
 
 	// FROM THE APP LAYER I CAN SET DEPTH WRITING AND THAT CHANGES THE W VALUE OF THE CAMERA POS
 	float eased_depth_value = ease_in_circular(depth_value);
-	result.depth = input.camera_world_pos.w * float4(normal_color,eased_depth_value);
+	
+	//TODO: WHEN DEPTH IS NOT 1, if THE blend_state is active it APPLIES THE ALPHA TO THE RGB VALUES 
+	// SO THEY WILL NOT BE EXACTLY THE SAME WHEN READ FROM THE POST PROCESSING SHADER
+	//TODO: make 2 different textures for normal and depth
+	result.depth = input.camera_world_pos.w * float4(normal_color, eased_depth_value);
+	// result.depth = float4(normal_color, 1);
 
    // result.color = result.depth;
 
