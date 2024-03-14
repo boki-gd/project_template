@@ -1547,19 +1547,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 		// ACTUALLY RENDER
 
 		if(screen_render_target->target_view)
-		{
-			Color black_color = {0,0,0,0};
-			// skip this for trippy results
-			//TODO: this should be done in a list
-
-			// dx->context->ClearRenderTargetView(dx->render_target_views_list[memory.render_target_views.screen_rtv], (float*)&memory.bg_color);
-			FOREACH(Render_target, current_rt, render_targets_list)
-			{
-				if(current_rt->target_view)
-				{
-					dx->context->ClearRenderTargetView(current_rt->target_view, (float*)&memory.bg_color);
-				}
-			}
+		{		
 			
 			u32 counter = 0;
 			FOREACH(Depth_stencil, current_ds, depth_stencils_list){
@@ -1747,6 +1735,16 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 					dx11_bind_rasterizer_state(dx, dx->rasterizer_state);
 
 					ASSERTHR(hr);
+				}
+				if(request->type_flags & REQUEST_FLAG_SET_SAMPLER)
+				{
+					ASSERT(false);
+				}
+				if(request->type_flags & REQUEST_FLAG_CLEAR_RTV)
+				{
+					Render_target* rtv_to_clear;
+					LIST_GET(render_targets_list, request->clear_rtv.uid, rtv_to_clear);
+					dx->context->ClearRenderTargetView(rtv_to_clear->target_view, (float*)&request->clear_rtv.color);
 				}
 
 
