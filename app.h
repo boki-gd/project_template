@@ -287,6 +287,7 @@ struct App_memory
 	Color bg_color;
 
 	Int2 screen_size; //THIS IS THE SIZE OF THE SCREEN AS THE NAME SAYS YOU DUMB FU**ER
+	Int2 viewport_size;
 	f32 fov;
 	b32 enforce_aspect_ratio;
 	f32 aspect_ratio;

@@ -279,7 +279,7 @@ dx11_create_sampler(D3D* dx, Dx11_sampler_state** result)
 	#if DEBUGMODE
 		D3D11_TEXTURE_ADDRESS_MODE texture_address_mode =  D3D11_TEXTURE_ADDRESS_BORDER;
 	#else
-		D3D11_TEXTURE_ADDRESS_MODE texture_address_mode =  D3D11_TEXTURE_ADDRESS_CLAMP;
+		D3D11_TEXTURE_ADDRESS_MODE texture_address_mode = D3D11_TEXTURE_ADDRESS_WRAP;
 	#endif
 	desc.AddressU = texture_address_mode;
 	desc.AddressV = texture_address_mode;

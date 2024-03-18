@@ -17,7 +17,6 @@ PS_OUTPUT_DEFAULT ps( VS_OUTPUT_DEFAULT input, uint tid : SV_PrimitiveID)
 		texcolor.g * (0.5+input.color.g)/1.5,
 		texcolor.b * (0.5+input.color.b)/1.5,
 		result_alpha);
-	result.color = input.color;
 
 	float3 N = normalize(input.normal);
 	//TODO: VERTICES STILL HAVE NO NORMALS SO THIS WILL ALWAYS BE 0

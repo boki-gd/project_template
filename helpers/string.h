@@ -79,7 +79,7 @@ compare_strings(String s1, String s2)
 internal bool
 compare_strings(String s1, char* s2)
 {
-	for(u32 i=0 ; s1.text[i] && s2[i]; i++)
+	for(u32 i=0 ; s1.text[i] && s2[i] && i<s1.length; i++)
 	{
 		if(s1.text[i] != s2[i])
 			return false;

@@ -110,7 +110,7 @@ gltf_get_property_index(String p)
         return VERTICES_I;
     else if(compare_strings(p, "NORMAL"))
         return NORMALS_I;
-    else if(compare_strings(p, "TEXCOORD_0"))
+    else if(compare_strings(p, "TEXCOORD"))
         return TEXCOORDS_I;
     else if(compare_strings(p, "JOINTS_0"))
         return JOINTS_I;
@@ -248,7 +248,10 @@ gltf_get_meshes(
                 //TODO: here i should get the corresponding buffer with the buffer_index but in the glb
                 // there might be just 1 buffer
 
-                meshes_list[m].primitives[p].properties[primitive_property_index] = (bin_buffer+byte_offset);
+                if(!meshes_list[m].primitives[p].properties[primitive_property_index])
+                {
+                    meshes_list[m].primitives[p].properties[primitive_property_index] = (bin_buffer+byte_offset);
+                }
                 if(primitive_property_index == VERTICES_I)
                     meshes_list[m].primitives[p].vertices_count = elements_count;
                 else if(primitive_property_index == INDICES_I)

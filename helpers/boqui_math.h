@@ -176,10 +176,22 @@ struct Int2
     s32 x;
     s32 y;
 };
+
+internal Int2
+int2(int a, int b)
+{
+    return {a, b};
+}
+
 internal Int2
 int2_addition(Int2 a, Int2 b)
 {
     return {a.x+b.x, a.y+b.y};
+}
+internal b32
+operator !=(Int2 i1, Int2 i2)
+{
+    return !(i1.x == i2.x && i1.y == i2.y);
 }
 internal Int2
 operator +(Int2 i1, Int2 i2){
@@ -195,6 +207,11 @@ operator /(Int2 v, f32 d){
 }
 internal V2
 operator *(f32 d, Int2 v){
+    return {d*v.x, d*v.y};
+}
+internal Int2
+operator *(int d, Int2 v)
+{
     return {d*v.x, d*v.y};
 }
 
