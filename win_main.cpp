@@ -1549,6 +1549,9 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 		if(screen_render_target->target_view)
 		{		
 			
+
+			dx->context->ClearRenderTargetView(render_targets_list[0]->target_view, (float*)&memory.bg_color);
+			
 			u32 counter = 0;
 			FOREACH(Depth_stencil, current_ds, depth_stencils_list){
 				counter++;
