@@ -791,4 +791,5 @@ struct Instance_data
 {
 	Matrix object_transform;
 	Color color;
+   Rect_float texrect;
 };

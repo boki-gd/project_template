@@ -61,8 +61,9 @@ struct VS_INPUT_DEFAULT
 
    // PER INSTANCE DATA
 
-   float4x4 object_transform : INSTANCE_OBJECT_TRANSFORM;
+   float4x4 instance_object_transform : INSTANCE_OBJECT_TRANSFORM;
    float4 instance_color : INSTANCE_COLOR;
+	float4 instance_texrect : INSTANCE_TEXRECT;
 };
 
 struct VS_OUTPUT_DEFAULT

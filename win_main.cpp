@@ -738,6 +738,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 						}
 					}
 				}
+				new_font->atlas_texinfo_uid = (u16)LIST_SIZE(memory.tex_infos);
 				Tex_info* atlas_tex_info; PUSH_BACK(memory.tex_infos, assets_arena, atlas_tex_info);
 				atlas_tex_info->texture_uid = atlas_texview_uid;
 				atlas_tex_info->w = atlas_size.x;

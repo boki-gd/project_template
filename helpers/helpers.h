@@ -193,8 +193,8 @@ typedef Surface Image;
 		*cast = arena_push_size(arena, sizeof(*l[0]) + sizeof(l[0]));\
 		*p_last_element = l[1];\
 	}\
-	size_t* size = ((size_t*)l)+2;\
-	*size += 1;\
+	size_t* tempsize = ((size_t*)l)+2;\
+	*tempsize += 1;\
 	out = l[1];\
 }
 //TODO: #define PUSH_FRONT()
@@ -231,7 +231,7 @@ struct Tex_info{
 
 	// This are in case this is a texture from an atlas
 	
-	// the offsets are in pixels;
+	// the offsets are in pixels for uncentered textures
 	s32 xoffset, yoffset;
 	// this are normalized coordinates 0.0->1.0 with 1.0 being the atlas full width/height;
 	Rect_float texrect; 
@@ -240,7 +240,8 @@ struct Tex_info{
 struct Font
 {
 	u32* texinfo_uids;
-	u32 texinfos_count;
+	u16 texinfos_count;
+	u16 atlas_texinfo_uid;
 
 	f32 lines_height; // this is a f32 cuz for some reason the stb_tt asks for a float
 
