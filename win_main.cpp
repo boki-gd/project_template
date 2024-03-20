@@ -1787,8 +1787,9 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				}				
 				else if(request->type_flags & REQUEST_FLAG_RENDER_INSTANCES)
 				{
+					ASSERT(request->instancing_data.instances_count);
 					Tex_info* texinfo; 
-					LIST_GET(memory.tex_infos, request->texinfo_uid, texinfo);
+					LIST_GET(memory.tex_infos, request->instancing_data.texinfo_uid, texinfo);
 					// THIS IS THE TEXTURE THAT ALL THE INSTANCES WILL USE
 					Dx11_texture_view** texture_view;
 					LIST_GET(textures_list, texinfo->texture_uid, texture_view);

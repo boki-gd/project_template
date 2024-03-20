@@ -395,6 +395,7 @@ struct Renderer_request{
 
 		struct {
 			u16 mesh_uid;
+			u16 texinfo_uid;
 			u16 instances_count;
 			Instance_data* instances;
 			u16 dynamic_instances_mesh;
