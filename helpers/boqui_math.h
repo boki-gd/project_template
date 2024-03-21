@@ -476,6 +476,13 @@ rect_int(Int2 pos, Int2 size)
 {
     return {pos.x, pos.y, size.x, size.y};
 }
+internal b32
+point_vs_rect_int(Int2 p, Rect_int rect)
+{
+	b32 x_inside = rect.pos.x <=  p.x && p.x  < rect.pos.x + rect.size.x;
+	b32 y_inside = rect.pos.y <=  p.y && p.y  < rect.pos.y + rect.size.y;
+	return x_inside && y_inside;
+} 
 
 union Rect_float
 {
@@ -487,6 +494,13 @@ union Rect_float
         f32 x, y, w, h;
     };
 };
+internal b32
+point_vs_rect_float(V2 p, Rect_float rect)
+{
+	b32 x_inside = rect.pos.x <=  p.x && p.x  < rect.pos.x + rect.size.x;
+	b32 y_inside = rect.pos.y <=  p.y && p.y  < rect.pos.y + rect.size.y;
+	return x_inside && y_inside;
+}
 internal Rect_float
 operator *(f32 scalar, Rect_float rect)
 {
