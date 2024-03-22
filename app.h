@@ -327,18 +327,34 @@ struct App_memory
 internal u16
 get_next_available_index(u8* array, u32 arraylen, u16* last_used_index)
 {
-	u16 last_index = ((*last_used_index))%arraylen;
-
 	ASSERT(arraylen < 0xffff);
-	UNTIL(i, arraylen)
+	if(last_used_index)
 	{
-		u16 index = (last_index+i)%(u16)arraylen;
-		if(!array[index])
+
+		u16 last_index = ((*last_used_index))%arraylen;
+
+		UNTIL(i, arraylen)
 		{
-			array[index] = 1;
-			*last_used_index = index;
-			return index;
+			u16 index = (last_index+i)%(u16)arraylen;
+			if(!array[index])
+			{
+				array[index] = 1;
+				*last_used_index = index;
+				return index;
+			}
 		}
+	}
+	else
+	{
+		UNTIL(i, arraylen)
+		{
+			if(!array[i])
+			{
+				array[i] = 1;
+				return (u16)i;
+			}
+		}
+
 	}
 	ASSERT(false);
 	return false;
