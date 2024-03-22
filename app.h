@@ -328,33 +328,22 @@ internal u16
 get_next_available_index(u8* array, u32 arraylen, u16* last_used_index)
 {
 	ASSERT(arraylen < 0xffff);
-	if(last_used_index)
+	u16 temp = 0;
+	if(!last_used_index)
 	{
-
-		u16 last_index = ((*last_used_index))%arraylen;
-
-		UNTIL(i, arraylen)
-		{
-			u16 index = (last_index+i)%(u16)arraylen;
-			if(!array[index])
-			{
-				array[index] = 1;
-				*last_used_index = index;
-				return index;
-			}
-		}
+		last_used_index = &temp;
 	}
-	else
-	{
-		UNTIL(i, arraylen)
-		{
-			if(!array[i])
-			{
-				array[i] = 1;
-				return (u16)i;
-			}
-		}
+	u16 last_index = ((*last_used_index))%arraylen;
 
+	UNTIL(i, arraylen)
+	{
+		u16 index = (last_index+i)%(u16)arraylen;
+		if(!array[index])
+		{
+			array[index] = 1;
+			*last_used_index = index;
+			return index;
+		}
 	}
 	ASSERT(false);
 	return false;
