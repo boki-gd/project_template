@@ -16,6 +16,8 @@
 #define READ_FILE_FUNCTION_TYPE(...) File_data (*__VA_ARGS__)(String, Memory_arena*)
 #define WRITE_FILE_FUNCTION_TYPE(...) bool (*__VA_ARGS__)(String, void*, u32)
 #define FILE_EXISTS_FUNCTION_TYPE(...) bool (*__VA_ARGS__)(char*)
+#define DELETE_FILE_FUNCTION_TYPE(...) bool (*__VA_ARGS__)(String)
+#define COPY_FILE_FUNCTION_TYPE(...) bool (*__VA_ARGS__)(String, String)
 
 
 struct Element_handle
@@ -209,6 +211,8 @@ struct FILE_IO_FUNCTIONS
 	READ_FILE_FUNCTION_TYPE(read_file);
 	WRITE_FILE_FUNCTION_TYPE(write_file);
 	FILE_EXISTS_FUNCTION_TYPE(file_exists);
+	DELETE_FILE_FUNCTION_TYPE(delete_file);
+	COPY_FILE_FUNCTION_TYPE(copy_file);
 };
 
 struct Date

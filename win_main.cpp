@@ -377,6 +377,8 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 	memory.file_io.read_file = &win_read_file;
 	memory.file_io.write_file = &win_write_file;
 	memory.file_io.file_exists = &win_file_exists;
+	memory.file_io.delete_file = &win_delete_file;
+	memory.file_io.copy_file = &win_copy_file;
 	memory.win_time.get_current_date = &win_get_current_date;
 	memory.win_time.offset_date_by_days = &win_offset_date_by_days;
 

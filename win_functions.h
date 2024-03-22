@@ -79,31 +79,6 @@ win_read_file(String filename, Memory_arena* arena)
 
 	return result;
 }
-#if DEBUGMODE
-
-// internal File_data
-// win_read_file(String filename, Memory_arena* arena)
-// {arena;
-// 	File_data result;
-// 	char* scan = packed_data.text;
-// 	while(scan < packed_data.text+packed_data.size)
-// 	{
-// 		String temp_filename = string(scan);
-// 		scan += temp_filename.length+1;
-// 		u32 file_size = SCAN(scan, u32);
-// 		if(compare_strings(filename, temp_filename))
-// 		{
-// 			result.data = scan;
-// 			result.size = file_size;
-// 			return result;
-// 		}
-// 		scan += file_size;
-// 	}
-
-// 	ASSERT(false);
-// 	return {0};
-// }
-#endif
 
 internal bool
 win_write_file(String filename, void* data, u32 file_size)
@@ -131,6 +106,28 @@ win_write_file(String filename, void* data, u32 file_size)
 	}
 
 	return result;
+}
+
+internal bool
+win_delete_file(String filename)
+{
+	char filename_buffer [MAX_PATH] = {0};
+	copy_mem(filename.text, filename_buffer, filename.length);
+
+	return DeleteFileA(filename_buffer);
+}
+
+internal bool
+win_copy_file(String filename, String new_filename)
+{
+	char filename_buffer [MAX_PATH] = {0};
+	copy_mem(filename.text, filename_buffer, filename.length);
+
+	char new_filename_buffer [MAX_PATH] = {0};
+	copy_mem(new_filename.text, new_filename_buffer, new_filename.length);
+
+	b32 overwrite_if_exists = 0;
+	return CopyFile(filename_buffer, new_filename_buffer, overwrite_if_exists);
 }
 
 internal Int2
