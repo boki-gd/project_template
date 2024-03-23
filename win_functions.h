@@ -33,6 +33,71 @@
 	
 */
 
+internal String
+win_get_current_directory(Memory_arena* arena)
+{
+	String result;
+	char temp_buffer [MAX_PATH] = {0}; 
+	
+	result.length = GetCurrentDirectoryA(MAX_PATH, temp_buffer);
+	ASSERT(result.length);
+	
+	// converting \\ to /
+	UNTIL(char_i, result.length)
+	{
+		if(temp_buffer[char_i] == '\\') temp_buffer[char_i] = '/';
+	}
+
+	temp_buffer[result.length] = '/';
+	result.length++;
+
+	result.text = (char*)arena_push_data(arena, temp_buffer, result.length);
+
+	return result;
+}
+internal void
+win_list_all_files(String filename_to_search_for, LIST(String, filenames_list), Memory_arena* arena)
+{
+	ASSERT(filename_to_search_for.length < MAX_PATH);
+	char temp_buffer [MAX_PATH] = {0};
+	copy_mem(filename_to_search_for.text, temp_buffer, filename_to_search_for.length);
+	temp_buffer[filename_to_search_for.length] = '*';
+
+   WIN32_FIND_DATA find_data;
+	HANDLE file_handle = FindFirstFileA(temp_buffer, &find_data);
+	if(file_handle == INVALID_HANDLE_VALUE)
+	{
+		DWORD error = GetLastError();
+		ASSERT(error == ERROR_FILE_NOT_FOUND);
+		return;
+	}
+
+	DWORD error = GetLastError();
+	while(true)
+	{
+		String* current_filename;
+		PUSH_BACK(filenames_list, arena, current_filename);
+
+		for(u32 char_i = 0; char_i < MAX_PATH && find_data.cFileName[char_i]; char_i++)
+		{
+			current_filename->length++;
+		}
+
+		current_filename->text = (char*)arena_push_size(arena, 0);
+		arena_push_data(arena, find_data.cFileName, current_filename->length);
+
+		if(!FindNextFileA(file_handle, &find_data))
+		{
+			error = GetLastError();
+			ASSERT(error == ERROR_NO_MORE_FILES);
+			break;
+		}
+	}
+
+   FindClose(file_handle);
+}
+
+
 internal bool
 win_file_exists(char* filename)
 {
@@ -84,6 +149,29 @@ internal bool
 win_write_file(String filename, void* data, u32 file_size)
 {
 	b32 result = false;
+
+	UNTIL(char_i, filename.length)
+	{
+		switch(filename.text[char_i])
+		{
+			// INVALID CHARACTERS FOR FILENAME
+			// case ':':
+			// case '/':
+			// case '\\':
+			case '>':
+			case '<':
+			case '\"':
+			case '|':
+			case '?':
+			case '*':
+			{
+				ASSERT(false);
+				return false;
+			}break;
+
+			default: break;
+		}
+	}
 
 	HANDLE file_handle = CreateFileA(filename.text, GENERIC_WRITE, FILE_SHARE_WRITE, 0, CREATE_ALWAYS, 0,0);
 	if(file_handle != INVALID_HANDLE_VALUE)

@@ -18,6 +18,8 @@
 #define FILE_EXISTS_FUNCTION_TYPE(...) bool (*__VA_ARGS__)(char*)
 #define DELETE_FILE_FUNCTION_TYPE(...) bool (*__VA_ARGS__)(String)
 #define COPY_FILE_FUNCTION_TYPE(...) bool (*__VA_ARGS__)(String, String)
+#define GET_CURRENT_DIRECTORY_FUNCTION_TYPE(...) String (*__VA_ARGS__)(Memory_arena*)
+#define LIST_ALL_FILES_FUNCTION_TYPE(...) void (*__VA_ARGS__)(String, LIST(String,), Memory_arena*)
 
 
 struct Element_handle
@@ -213,6 +215,8 @@ struct FILE_IO_FUNCTIONS
 	FILE_EXISTS_FUNCTION_TYPE(file_exists);
 	DELETE_FILE_FUNCTION_TYPE(delete_file);
 	COPY_FILE_FUNCTION_TYPE(copy_file);
+	GET_CURRENT_DIRECTORY_FUNCTION_TYPE(get_current_directory);
+	LIST_ALL_FILES_FUNCTION_TYPE(list_all_files);
 };
 
 struct Date

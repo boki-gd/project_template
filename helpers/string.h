@@ -220,7 +220,7 @@ s32_to_string(s32 n, Memory_arena* arena)
 		n = n/10;
 		i--;
 	}
-	arena_push_data(arena, "\0", 1);
+	arena_push_size(arena, 1); //0 ending string
 	return result;
 }
 
@@ -236,4 +236,31 @@ concat_strings(String s1, String s2, Memory_arena* arena)
 
 	arena_push_size(arena, 1); // 0 ending string
 	return result;
+}
+
+internal String
+filepath_substring_until_last_slash(String filepath, Memory_arena* arena)
+{
+	u32 last_slash_pos = 0;
+	UNTIL(char_i, filepath.length)
+	{
+		if(filepath.text[char_i] == '/')
+		{
+			last_slash_pos = char_i;
+		}
+	}
+	ASSERT(last_slash_pos);
+
+	String result;
+	result.text = ARENA_PUSH_STRUCTS(arena, char, last_slash_pos + 2);
+	result.length = last_slash_pos+1;
+	copy_mem(filepath.text, result.text, result.length);
+
+	return result;
+}
+
+internal String
+buffer_and_length_to_string(char* buffer, u32 length)
+{
+	return {buffer, length};
 }

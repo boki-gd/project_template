@@ -58,7 +58,6 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 	AdjustWindowRectEx(&winrect, WS_OVERLAPPEDWINDOW,0,0);
 	Int2 win_size = {winrect.right-winrect.left, winrect.bottom-winrect.top};
 
-
 	// WINDOW CREATION
 
 
@@ -120,6 +119,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 	ASSERT(app_size);
 	memory.temp_arena = temp_arena;
 	memory.permanent_arena = permanent_arena;
+
 
 	#if DEBUGMODE
 	
@@ -379,6 +379,9 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 	memory.file_io.file_exists = &win_file_exists;
 	memory.file_io.delete_file = &win_delete_file;
 	memory.file_io.copy_file = &win_copy_file;
+	memory.file_io.get_current_directory = &win_get_current_directory;
+	memory.file_io.list_all_files = &win_list_all_files;
+
 	memory.win_time.get_current_date = &win_get_current_date;
 	memory.win_time.offset_date_by_days = &win_offset_date_by_days;
 
