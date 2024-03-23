@@ -73,7 +73,7 @@ compare_strings(String s1, String s2)
 		if(s1.text[i] != s2.text[i])
 			return false;
 	}
-	return true;
+	return s1.text[0] == s2.text[0];
 }
 
 internal bool
