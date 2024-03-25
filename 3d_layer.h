@@ -307,7 +307,7 @@ quaternion_from_v1_to_v2(V3 v1, V3 v2)
    }
    else
    {
-      return {0,SQRT_0POINT5,SQRT_0POINT5,0};
+      return {0,SQRT_1HALF,SQRT_1HALF,0};
    }
 }
 internal Quaternion

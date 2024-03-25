@@ -19,7 +19,7 @@
 #define DELETE_FILE_FUNCTION_TYPE(...) bool (*__VA_ARGS__)(String)
 #define COPY_FILE_FUNCTION_TYPE(...) bool (*__VA_ARGS__)(String, String)
 #define GET_CURRENT_DIRECTORY_FUNCTION_TYPE(...) String (*__VA_ARGS__)(Memory_arena*)
-#define LIST_ALL_FILES_FUNCTION_TYPE(...) void (*__VA_ARGS__)(String, LIST(String,), Memory_arena*)
+#define LIST_ALL_FILES_FUNCTION_TYPE(...) bool (*__VA_ARGS__)(String, LIST(Filename,), Memory_arena*)
 
 
 struct Element_handle
@@ -155,6 +155,7 @@ enum Input_keyboard_indices
 	INPUT_9,
 	INPUT_0,
 
+	INPUT_ESCAPE,
 	INPUT_F1,
 	INPUT_F2,
 	INPUT_F3,
@@ -207,6 +208,12 @@ set_input(s32* holding_keys, u8* pressed_inputs, Input_keyboard_indices k, b32 i
 		pressed_inputs[k] = 1;
 	}
 }
+
+struct Filename
+{
+	String name;
+	b8 is_folder;
+};
 
 struct FILE_IO_FUNCTIONS
 {
@@ -745,6 +752,7 @@ holding_key(App_memory* memory, Input_keyboard_indices key)
 	}
 	return false;
 }
+
 
 #define PUSH_BACK_RENDER_REQUEST(render_list) \
    ASSERT(!request || request->type_flags != REQUEST_FLAG_RENDER_OBJECT || (request->color.a && request->scale.x && request->scale.y && request->scale.z));\

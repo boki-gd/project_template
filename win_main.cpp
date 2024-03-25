@@ -70,7 +70,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 
 	RegisterClassA(&window_class);
 
-	DWORD exstyle = WS_OVERLAPPEDWINDOW | WS_VISIBLE;
+	DWORD exstyle = WS_OVERLAPPEDWINDOW|WS_VISIBLE;
 	
 	HWND window = CreateWindowExA(
 		0,// WS_EX_TOPMOST,
@@ -79,8 +79,10 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 		exstyle,
 		CW_USEDEFAULT,
 		CW_USEDEFAULT,
-		win_size.x,
-		win_size.y,
+		CW_USEDEFAULT,
+		CW_USEDEFAULT,
+		// win_size.x,
+		// win_size.y,
 		0,
 		0,
 		window_class.hInstance,
@@ -88,6 +90,8 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 	);
 	ASSERT(window);
 	if(!window) return 1; 
+
+	ShowWindow(window, SW_MAXIMIZE); // MAXIMIZING WINDOW
 
 
 	// MAIN MEMORY BLOCKS
@@ -1164,47 +1168,75 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 					{	
 						#define SET_INPUT(k_index) set_input(holding_inputs.keys, pressed_keys, k_index, is_down)
 						switch(vkcode){
-							case 'A':
-								SET_INPUT(INPUT_A);
+							case VK_SPACE:
+								SET_INPUT(INPUT_SPACE_BAR);
 							break;
-							case 'D':
-								SET_INPUT(INPUT_D);
-							break; 
+							case VK_TAB:
+								SET_INPUT(INPUT_TAB);
+							break;
+							case VK_SHIFT:
+								SET_INPUT(INPUT_SHIFT);
+							break;
+							case VK_CONTROL:
+								SET_INPUT(INPUT_CONTROL);
+							break;
+							
+							case 'Q':
+								SET_INPUT(INPUT_Q);
+							break;
 							case 'W':
 								SET_INPUT(INPUT_W);
+							break;
+							case 'E':
+								SET_INPUT(INPUT_E);
+							break;
+							case 'R':
+								SET_INPUT(INPUT_R);
+							break;
+							case 'T':
+								SET_INPUT(INPUT_T);
+							break;
+							case 'Y':
+								SET_INPUT(INPUT_Y);
+							break;
+							case 'U':
+								SET_INPUT(INPUT_U);
+							break;
+							case 'I':
+								SET_INPUT(INPUT_I);
+							break;
+							case 'O':
+								SET_INPUT(INPUT_O);
+							break;
+							case 'P':
+								SET_INPUT(INPUT_P);
+							break;
+							case 'A':
+								SET_INPUT(INPUT_A);
 							break;
 							case 'S':
 								SET_INPUT(INPUT_S);
 							break;
-							case VK_SPACE:
-								SET_INPUT(INPUT_SPACE_BAR);
-								break;
-							case VK_TAB:
-								SET_INPUT(INPUT_TAB);
-								break;
-							case VK_SHIFT:
-								SET_INPUT(INPUT_SHIFT);
-								break;
-							case VK_CONTROL:
-								SET_INPUT(INPUT_CONTROL);
-								break;
+							case 'D':
+								SET_INPUT(INPUT_D);
+							break;
 							case 'F':
 								SET_INPUT(INPUT_F);
-								break;
-							case 'R':
-								SET_INPUT(INPUT_R);
-								break;
-							case 'T':
-								SET_INPUT(INPUT_T);
-								break;
-							case 'Q':
-								SET_INPUT(INPUT_Q);
-								break;
-							case 'E':
-								SET_INPUT(INPUT_E);
 							break;
-							case 'N':
-								SET_INPUT(INPUT_N);
+							case 'G':
+								SET_INPUT(INPUT_G);
+							break;
+							case 'H':
+								SET_INPUT(INPUT_H);
+							break;
+							case 'J':
+								SET_INPUT(INPUT_J);
+							break;
+							case 'K':
+								SET_INPUT(INPUT_K);
+							break;
+							case 'L':
+								SET_INPUT(INPUT_L);
 							break;
 							case 'Z':
 								SET_INPUT(INPUT_Z);
@@ -1221,11 +1253,11 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 							case 'B':
 								SET_INPUT(INPUT_B);
 							break;
-							case 'P':
-								SET_INPUT(INPUT_P);
+							case 'N':
+								SET_INPUT(INPUT_N);
 							break;
-							case 'J':
-								SET_INPUT(INPUT_J);
+							case 'M':
+								SET_INPUT(INPUT_M);
 							break;
 							case '1':
 								SET_INPUT(INPUT_1);
@@ -1244,6 +1276,22 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 							break;
 							case '6':
 								SET_INPUT(INPUT_6);
+							break;
+							case '7':
+								SET_INPUT(INPUT_7);
+							break;
+							case '8':
+								SET_INPUT(INPUT_8);
+							break;
+							case '9':
+								SET_INPUT(INPUT_9);
+							break;
+							case '0':
+								SET_INPUT(INPUT_0);
+							break;
+
+							case VK_ESCAPE:
+								SET_INPUT(INPUT_ESCAPE);
 							break;
 							case VK_F1:
 								SET_INPUT(INPUT_F1);

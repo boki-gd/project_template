@@ -1,7 +1,7 @@
 #if !defined(TYPE_DEFINITIONS)
 #define TYPE_DEFINITIONS
 
-#define DEBUGMODE 1
+#define DEBUGMODE 0
 #define PRINT_FRAMERATE 0
 
 #define internal static
@@ -23,7 +23,7 @@
 
 #define PI32    3.14159265359f
 #define TAU32     6.28318530718f
-#define SQRT_0POINT5 0.7071067811f
+#define SQRT_1HALF 0.7071067811f
 
 #define FIRST_CHAR 32
 #define LAST_CHAR 255

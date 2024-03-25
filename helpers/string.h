@@ -29,6 +29,14 @@ is_alphanumeric(u8 code)
         ;
 }
 
+internal b8
+is_letter(u8 code)
+{
+	return 
+        ('a' <= code && code <= 'z' )    ||
+        ('A' <= code && code <= 'Z');
+}
+
 struct String
 {
 	char* text;
@@ -249,12 +257,20 @@ filepath_substring_until_last_slash(String filepath, Memory_arena* arena)
 			last_slash_pos = char_i;
 		}
 	}
-	ASSERT(last_slash_pos);
-
+	
 	String result;
-	result.text = ARENA_PUSH_STRUCTS(arena, char, last_slash_pos + 2);
-	result.length = last_slash_pos+1;
-	copy_mem(filepath.text, result.text, result.length);
+
+	if(last_slash_pos)
+	{
+		result.text = ARENA_PUSH_STRUCTS(arena, char, last_slash_pos + 2); // +1 null terminator
+		result.length = last_slash_pos+1;
+		copy_mem(filepath.text, result.text, result.length);
+	}
+	else
+	{
+		result.text = ARENA_PUSH_STRUCT(arena, char);
+		result.length = 0;
+	}
 
 	return result;
 }
@@ -263,4 +279,72 @@ internal String
 buffer_and_length_to_string(char* buffer, u32 length)
 {
 	return {buffer, length};
+}
+
+internal u32
+get_previous_word_from_cursor(String buffer, u32 cursor_pos)
+{
+	if(!cursor_pos)
+	{
+		return 0;
+	}
+	else
+	{
+		char pseudo_initial_char = buffer.text[cursor_pos-1];
+		b8 is_initial_char_alphanumeric = true;
+		b8 already_moved = false;
+		while(cursor_pos
+		&&
+			(
+				buffer.text[cursor_pos-1] == pseudo_initial_char
+			|| ((is_initial_char_alphanumeric) && is_alphanumeric(buffer.text[cursor_pos-1])) 
+			)
+		)
+		{
+			cursor_pos--;
+			if(!already_moved && cursor_pos)
+			{
+				pseudo_initial_char = buffer.text[cursor_pos-1];
+				is_initial_char_alphanumeric = is_alphanumeric(pseudo_initial_char);
+			}
+			already_moved = true;
+		}
+		
+		return cursor_pos;
+	}
+}
+
+internal u32
+get_next_word_from_cursor(String buffer, u32 cursor_pos)
+{
+	if(buffer.length <= cursor_pos)
+	{
+		return buffer.length;
+	}
+	else
+	{
+		char pseudo_initial_char = buffer.text[cursor_pos];
+		b8 is_initial_char_alphanumeric = true;
+
+		b8 already_moved = false;
+
+		while(cursor_pos < buffer.length
+		&&
+			(
+				buffer.text[cursor_pos] == pseudo_initial_char
+			|| ((is_initial_char_alphanumeric) && is_alphanumeric(buffer.text[cursor_pos])) 
+			)
+		)
+		{
+			cursor_pos++;
+			if(!already_moved)
+			{
+				pseudo_initial_char = buffer.text[cursor_pos];
+				is_initial_char_alphanumeric = is_alphanumeric(pseudo_initial_char);
+			}
+
+			already_moved = true;
+		}
+		return cursor_pos;
+	}
 }

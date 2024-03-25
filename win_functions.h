@@ -55,8 +55,8 @@ win_get_current_directory(Memory_arena* arena)
 
 	return result;
 }
-internal void
-win_list_all_files(String filename_to_search_for, LIST(String, filenames_list), Memory_arena* arena)
+internal bool
+win_list_all_files(String filename_to_search_for, LIST(Filename, filenames_list), Memory_arena* arena)
 {
 	ASSERT(filename_to_search_for.length < MAX_PATH);
 	char temp_buffer [MAX_PATH] = {0};
@@ -68,23 +68,32 @@ win_list_all_files(String filename_to_search_for, LIST(String, filenames_list), 
 	if(file_handle == INVALID_HANDLE_VALUE)
 	{
 		DWORD error = GetLastError();
-		ASSERT(error == ERROR_FILE_NOT_FOUND);
-		return;
+		ASSERT(
+			error == ERROR_FILE_NOT_FOUND 
+		|| error == ERROR_PATH_NOT_FOUND
+		|| error == ERROR_INVALID_NAME
+		);
+		return false;
 	}
 
 	DWORD error = GetLastError();
 	while(true)
 	{
-		String* current_filename;
+		Filename* current_filename;
 		PUSH_BACK(filenames_list, arena, current_filename);
 
 		for(u32 char_i = 0; char_i < MAX_PATH && find_data.cFileName[char_i]; char_i++)
 		{
-			current_filename->length++;
+			current_filename->name.length++;
 		}
 
-		current_filename->text = (char*)arena_push_size(arena, 0);
-		arena_push_data(arena, find_data.cFileName, current_filename->length);
+		current_filename->name.text = (char*)arena_push_size(arena, 0);
+		arena_push_data(arena, find_data.cFileName, current_filename->name.length);
+		
+		if(find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+		{
+			current_filename->is_folder = true;
+		}
 
 		if(!FindNextFileA(file_handle, &find_data))
 		{
@@ -95,6 +104,8 @@ win_list_all_files(String filename_to_search_for, LIST(String, filenames_list), 
 	}
 
    FindClose(file_handle);
+
+	return true;
 }
 
 
