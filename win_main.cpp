@@ -58,42 +58,6 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 	AdjustWindowRectEx(&winrect, WS_OVERLAPPEDWINDOW,0,0);
 	Int2 win_size = {winrect.right-winrect.left, winrect.bottom-winrect.top};
 
-	// WINDOW CREATION
-
-
-	WNDCLASSA window_class = {0};
-	window_class.style = CS_VREDRAW|CS_HREDRAW;
-	window_class.lpfnWndProc = win_main_window_proc;
-	window_class.hInstance = h_instance;
-	window_class.lpszClassName = "classname";
-	window_class.hCursor = LoadCursor(0, IDC_ARROW);
-
-	RegisterClassA(&window_class);
-
-	DWORD exstyle = WS_OVERLAPPEDWINDOW|WS_VISIBLE;
-	
-	HWND window = CreateWindowExA(
-		0,// WS_EX_TOPMOST,
-		window_class.lpszClassName,
-		"THE window",
-		exstyle,
-		CW_USEDEFAULT,
-		CW_USEDEFAULT,
-		CW_USEDEFAULT,
-		CW_USEDEFAULT,
-		// win_size.x,
-		// win_size.y,
-		0,
-		0,
-		window_class.hInstance,
-		0
-	);
-	ASSERT(window);
-	if(!window) return 1; 
-
-	ShowWindow(window, SW_MAXIMIZE); // MAXIMIZING WINDOW
-
-
 	// MAIN MEMORY BLOCKS
 
 	#if DEBUGMODE // this is so that pointers always point to the same address
@@ -123,45 +87,93 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 	ASSERT(app_size);
 	memory.temp_arena = temp_arena;
 	memory.permanent_arena = permanent_arena;
+	// LOADING APP DLL
 
 
-	#if DEBUGMODE
+	char* dll_names [] = APP_DLL_NAMES;
+	App_dll apps [ARRAYCOUNT(dll_names)]= {0};
+	u32 apps_count = ARRAYCOUNT(dll_names);
+	u32 current_app = 0;
+	{
+		UNTIL(dll_i, apps_count)
+		{
+			apps[dll_i].dll = win_load_game_dll(dll_names[dll_i], &apps[dll_i].dll_last_write_time);
+			ASSERT(apps[dll_i].dll);
+			apps[dll_i].update = (UPDATE_TYPE( ))GetProcAddress(apps[dll_i].dll, "update");
+			apps[dll_i].render = (RENDER_TYPE( ))GetProcAddress(apps[dll_i].dll, "render");
+			apps[dll_i].init = (INIT_TYPE( ))GetProcAddress(apps[dll_i].dll, "init");
+			apps[dll_i].close_app = (CLOSE_TYPE( ))GetProcAddress(apps[dll_i].dll, "close_app");
+			ASSERT(apps[dll_i].update);
+			ASSERT(apps[dll_i].render);
+			ASSERT(apps[dll_i].init);
+		}
+	}
+
+	// APP INIT
+
+	memory.file_io.read_file = &win_read_file;
+	memory.file_io.write_file = &win_write_file;
+	memory.file_io.file_exists = &win_file_exists;
+	memory.file_io.delete_file = &win_delete_file;
+	memory.file_io.copy_file = &win_copy_file;
+	memory.file_io.get_current_directory = &win_get_current_directory;
+	memory.file_io.list_all_files = &win_list_all_files;
+
+	memory.win_time.get_current_date = &win_get_current_date;
+	memory.win_time.offset_date_by_days = &win_offset_date_by_days;
+
+	Init_data init_data = {0};
+
+	UNTIL(app_i, apps_count)
+	{
+		apps[app_i].init(&memory, &init_data);
+	}
+
+
+
+	// WINDOW CREATION
+
+
+	WNDCLASSA window_class = {0};
+	window_class.style = CS_VREDRAW|CS_HREDRAW;
+	window_class.lpfnWndProc = win_main_window_proc;
+	window_class.hInstance = h_instance;
+	window_class.lpszClassName = "classname";
+	window_class.hCursor = LoadCursor(0, IDC_ARROW);
+
+	RegisterClassA(&window_class);
+
+	DWORD exstyle = WS_OVERLAPPEDWINDOW|WS_VISIBLE;
 	
-   	// WIN32_FIND_DATA find_data;
-      // HANDLE file_handle = FindFirstFileA(".", &find_data);
-      // do
-      // {
-		// 	if(find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-		// 	{
+	
+	HWND window;
+	{
+		char window_title[256] = "THE window";
+		if(init_data.window_title.text)
+		{
+			copy_mem(init_data.window_title.text, window_title, init_data.window_title.length);
+		}
+		window = CreateWindowExA(
+			0,// WS_EX_TOPMOST,
+			window_class.lpszClassName,
+			window_title,
+			exstyle,
+			CW_USEDEFAULT,
+			CW_USEDEFAULT,
+			CW_USEDEFAULT,
+			CW_USEDEFAULT,
+			// win_size.x,
+			// win_size.y,
+			0,
+			0,
+			window_class.hInstance,
+			0
+		);
+		ASSERT(window);
+		if(!window) return 1; 
+	}
 
-		// 	}
-		// 	else
-      //    {
-
-      //       String filename = string(find_data.cFileName);
-      //       String tempstring = concat_strings(string("/"), filename, temp_arena);
-
-      //       String filepath = concat_strings(input_directory_filename, tempstring, temp_arena);
-            
-      //       #if USING_OUTPUT_ARGUMENT
-      //          String output_filepath = concat_strings(string(args[2]), tempstring, temp_arena);
-      //       #endif
-
-      //       error = metaprocess_file(&arena, filepath);
-
-      //       arena_pop_back_size(temp_arena, temp_arena->used);
-      //       arena_pop_back_size(&arena, arena.used);
-
-      //       if(error)
-      //       {
-      //          system("echo there was an error");
-      //          return error;
-      //       }
-      //    }
-      // }
-      // while (FindNextFileA(file_handle, &find_data) != 0);
-
-	#endif 
+	ShowWindow(window, SW_MAXIMIZE); // MAXIMIZING WINDOW
 	
 
 	// SETTING WINDOW PROPERTIES TO ACCESS THEM FROM THE FUNCTION_WINDOW_PROCEDURE
@@ -354,47 +366,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 
 
 
-	// LOADING APP DLL
-
-
-	char* dll_names [] = APP_DLL_NAMES;
-	App_dll apps [ARRAYCOUNT(dll_names)]= {0};
-	u32 apps_count = ARRAYCOUNT(dll_names);
-	u32 current_app = 0;
-	{
-		UNTIL(dll_i, apps_count)
-		{
-			apps[dll_i].dll = win_load_game_dll(dll_names[dll_i], &apps[dll_i].dll_last_write_time);
-			ASSERT(apps[dll_i].dll);
-			apps[dll_i].update = (UPDATE_TYPE( ))GetProcAddress(apps[dll_i].dll, "update");
-			apps[dll_i].render = (RENDER_TYPE( ))GetProcAddress(apps[dll_i].dll, "render");
-			apps[dll_i].init = (INIT_TYPE( ))GetProcAddress(apps[dll_i].dll, "init");
-			apps[dll_i].close_app = (CLOSE_TYPE( ))GetProcAddress(apps[dll_i].dll, "close_app");
-			ASSERT(apps[dll_i].update);
-			ASSERT(apps[dll_i].render);
-			ASSERT(apps[dll_i].init);
-		}
-	}
-
-	// APP INIT
-
-	memory.file_io.read_file = &win_read_file;
-	memory.file_io.write_file = &win_write_file;
-	memory.file_io.file_exists = &win_file_exists;
-	memory.file_io.delete_file = &win_delete_file;
-	memory.file_io.copy_file = &win_copy_file;
-	memory.file_io.get_current_directory = &win_get_current_directory;
-	memory.file_io.list_all_files = &win_list_all_files;
-
-	memory.win_time.get_current_date = &win_get_current_date;
-	memory.win_time.offset_date_by_days = &win_offset_date_by_days;
-
-	Init_data init_data = {0};
-
-	UNTIL(app_i, apps_count)
-	{
-		apps[app_i].init(&memory, &init_data);
-	}
+	// PREPARING ASSET LISTS
 
 
 	// TODO: make this more fail proof

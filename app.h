@@ -544,11 +544,12 @@ struct Asset_request{
 struct Init_data
 {
 	// this is sent from the platform layer to the init function
-	File_data meshes_serialization;
-	File_data textures_serialization;
-	File_data sounds_serialization;
+	// File_data meshes_serialization;
+	// File_data textures_serialization;
+	// File_data sounds_serialization;
  
 	// this is the result from the init function to the platform layer
+	String window_title;
 	LIST(Asset_request, asset_requests);
 };
 
