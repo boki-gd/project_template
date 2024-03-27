@@ -369,9 +369,8 @@ dx11_create_depth_stencil_view(D3D* dx, Dx11_depth_stencil_view** result, u32 wi
 	depth_stencil_texture->Release();
 }
 
-
-internal void
-dx11_create_texture_view(D3D* dx, Surface* texture, ID3D11ShaderResourceView** texture_view)
+internal ID3D11Texture2D*
+dx11_create_texture2d(D3D* dx, Surface* texture)
 {
 	HRESULT hr;
 	D3D11_TEXTURE2D_DESC desc = {0};
@@ -394,16 +393,24 @@ dx11_create_texture_view(D3D* dx, Surface* texture, ID3D11ShaderResourceView** t
 	hr = dx->device->CreateTexture2D(&desc, &init_data, &texture2D);
 	ASSERTHR(hr);
 
+	return texture2D;
+
+}
+
+
+internal void
+dx11_create_texture_view(D3D* dx, ID3D11Resource* resource, ID3D11ShaderResourceView** texture_view)
+{
+
 	// D3D11_SHADER_RESOURCE_VIEW_DESC srd = {0};
 	// srd.Format = desc.Format;
 	// srd.ViewDimension = D3D11_SRV_DIMENSION_TEXTURE2D;
 	// srd.Texture2D.MostDetailedMip = 0;
 	// srd.Texture2D.MipLevels = 1;
 
-	hr = dx->device->CreateShaderResourceView(texture2D, 0, texture_view);//TODO: this had the srd
-	ASSERTHR(hr);
 	// pDesc to 0 to create a view that accesses the entire resource (using the format the resource was created with)
-	texture2D->Release();
+	HRESULT hr = dx->device->CreateShaderResourceView(resource, 0, texture_view);//TODO: this had the srd
+	ASSERTHR(hr);
 }
 
 internal void
@@ -462,16 +469,7 @@ dx11_bind_vertex_buffer(D3D* dx, Dx11_buffer* vertex_buffer, u32 sizeof_vertex)
 		&offsets
 	);
 }
-// internal void
-// dx11_bind_constant_buffer(D3D* dx, D3D_constant_buffer* c)
-// {
-// 	dx->context->VSSetConstantBuffers(c->register_index, 1, &c->buffer);
-// }
-internal void
-dx11_bind_texture_view(D3D* dx, Dx11_texture_view** texture_view)
-{
-	dx->context->PSSetShaderResources(0,1, texture_view);
-}
+
 internal void
 dx11_bind_sampler(D3D* dx, Dx11_sampler_state** sampler)
 {

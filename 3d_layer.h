@@ -18,6 +18,7 @@ enum IE_FORMATS
 	IE_FORMAT_U32,
 	IE_FORMAT_3U32,
 	IE_FORMAT_S32,
+   IE_FORMAT_2S32,
 	IE_FORMAT_F32,
 	IE_FORMAT_2F32,
 	IE_FORMAT_3F32,
@@ -793,3 +794,9 @@ struct Instance_data
 	Color color;
    Rect_float texrect;
 };
+
+internal Matrix
+calculate_object_transform(V3 pos, V3 scale, Quaternion rotation)
+{
+   return matrix_scale(scale) * matrix_from_quaternion(rotation) * matrix_translation(pos);
+}

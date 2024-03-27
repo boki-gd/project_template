@@ -414,7 +414,6 @@ union V4
     Int4 i;
     V2 v2;
     V3 v3;
-    
 };
 
 typedef V4 Quaternion;

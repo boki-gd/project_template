@@ -67,12 +67,12 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 	#endif
 
 	Memory_arena arena1 = {0};
-	arena1.size = MEGABYTES(512); 
+	arena1.size = GIGABYTES(2); 
 	arena1.data = (u8*)VirtualAlloc(base_address, arena1.size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 	Memory_arena* permanent_arena = &arena1;
 
 	Memory_arena arena2 = {0};
-	arena2.size = MEGABYTES(256);
+	arena2.size = GIGABYTES(2);
 	arena2.data = (u8*)VirtualAlloc(0, arena2.size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 	Memory_arena* temp_arena = &arena2;
 
@@ -383,6 +383,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 	ie_formats_list[IE_FORMAT_U32] = DXGI_FORMAT_R32_UINT;
 	ie_formats_list[IE_FORMAT_3U32] = DXGI_FORMAT_R32G32B32_UINT;
 	ie_formats_list[IE_FORMAT_S32] = DXGI_FORMAT_R32_SINT;
+	ie_formats_list[IE_FORMAT_2S32] = DXGI_FORMAT_R32G32_SINT;
 	ie_formats_list[IE_FORMAT_F32] = DXGI_FORMAT_R32_FLOAT;
 	ie_formats_list[IE_FORMAT_2F32] = DXGI_FORMAT_R32G32_FLOAT;
 	ie_formats_list[IE_FORMAT_3F32] = DXGI_FORMAT_R32G32B32_FLOAT;
@@ -395,6 +396,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 	ie_formats_sizes[IE_FORMAT_U32] = 4;
 	ie_formats_sizes[IE_FORMAT_3U32] = 12;
 	ie_formats_sizes[IE_FORMAT_S32] = 4;
+	ie_formats_sizes[IE_FORMAT_2S32] = 8;
 	ie_formats_sizes[IE_FORMAT_F32] = 4;
 	ie_formats_sizes[IE_FORMAT_2F32] = 8;
 	ie_formats_sizes[IE_FORMAT_3F32] = 12;
@@ -402,6 +404,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 	ie_formats_sizes[IE_FORMAT_16F32] = 64;
 	
 	LIST(Dx11_texture_view*, textures_list) = {0};
+
 	LIST(Vertex_shader, vertex_shaders_list) = {0};
 	LIST(Dx11_pixel_shader*, pixel_shaders_list) = {0};
 	LIST(Dx_mesh, meshes_list) = {0};
@@ -453,7 +456,9 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 
 				tex_info->texture_uid = LIST_SIZE(textures_list);
 				Dx11_texture_view** texture_view; PUSH_BACK(textures_list, assets_arena, texture_view);
-				dx11_create_texture_view(dx, &tex_surface, texture_view);
+				ID3D11Texture2D* texture2d = dx11_create_texture2d(dx, &tex_surface);
+				dx11_create_texture_view(dx, texture2d, texture_view);
+				texture2d->Release();
 			}break;
 
 
@@ -731,7 +736,9 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 
 				Dx11_texture_view** atlas_texture; PUSH_BACK(textures_list, assets_arena, atlas_texture);
 				Surface atlas_surface = {(u32)atlas_size.x, (u32)atlas_size.y, atlas_pixels};
-				dx11_create_texture_view(dx, &atlas_surface, atlas_texture);
+				ID3D11Texture2D* texture2d = dx11_create_texture2d(dx, &atlas_surface);
+				dx11_create_texture_view(dx, texture2d, atlas_texture);
+				texture2d->Release();
 			}break;
 
 
@@ -749,9 +756,34 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				tex_info->texrect.w = 1.0f;
 				tex_info->texrect.h = 1.0f;
 				
+				ID3D11Texture2D* texture2d = dx11_create_texture2d(dx, &request->tex_surface);
+
 				tex_info->texture_uid = LIST_SIZE(textures_list);
 				Dx11_texture_view** texture_view; PUSH_BACK(textures_list, assets_arena, texture_view);
-				dx11_create_texture_view(dx, &request->tex_surface, texture_view);
+				dx11_create_texture_view(dx, texture2d, texture_view);
+				texture2d->Release();
+			}break;
+
+			case CREATE_DYNAMIC_TEXTURE3D:{
+				D3D11_TEXTURE3D_DESC tex3d_desc = {0};
+				tex3d_desc.Width = request->tex3d.sizes.x;
+				tex3d_desc.Height = request->tex3d.sizes.y;
+				tex3d_desc.Depth = request->tex3d.sizes.z;
+				tex3d_desc.MipLevels = 1;
+				tex3d_desc.Format = DXGI_FORMAT_R32_UINT;
+				tex3d_desc.Usage = D3D11_USAGE_DYNAMIC;
+				tex3d_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+				tex3d_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+				ID3D11Texture3D* texture3d; 
+				hr = dx->device->CreateTexture3D(&tex3d_desc, 0, &texture3d);
+				ASSERTHR(hr);
+
+				*request->tex3d.texview_uid = (u16)LIST_SIZE(textures_list);
+				Dx11_texture_view** texture_view; PUSH_BACK(textures_list, assets_arena, texture_view);
+				dx11_create_texture_view(dx, texture3d, texture_view);
+				texture3d->Release();
+								
 			}break;
 
 			case CREATE_RENDER_TARGET_REQUEST:
@@ -898,7 +930,6 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 					}
 				}
 			}break;
-
 
 			case FORGOR_TO_SET_ASSET_TYPE:
 			default:
@@ -1615,6 +1646,21 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 					dx11_modify_resource(dx, modify_mesh->index_buffer, request->modified_mesh.indices,
 						request->modified_mesh.indices_count * sizeof(u16));
 					ASSERT(true);
+				}// TODO: UNIFY THIS 2 FLAGS INTO "REQUEST_FLAG_MODIFY_DYNAMIC_RESOURCE"
+				if(request->type_flags & REQUEST_FLAG_MODIFY_DYNAMIC_TEXTURE) 
+				{
+					ID3D11Resource* modify_texture;
+					Dx11_texture_view** texture_view;
+					LIST_GET(textures_list, request->modifiable_texture.uid, texture_view);
+					(*texture_view)->GetResource(&modify_texture);
+					dx11_modify_resource(dx, modify_texture, request->modifiable_texture.new_data, request->modifiable_texture.size);
+					modify_texture->Release();
+				}
+				if(request->type_flags & REQUEST_FLAG_SET_SHADER_RESOURCE_FROM_TEXTURE)
+				{
+					Dx11_texture_view** texture_view; 
+					LIST_GET(textures_list, request->set_shader_resource_from_texture.tex_uid, texture_view);
+					dx->context->PSSetShaderResources(request->set_shader_resource_from_texture.target_index, 1, texture_view);
 				}
 				if(request->type_flags & REQUEST_FLAG_RESIZE_DEPTH_STENCIL_VIEW)
 				{
@@ -1728,6 +1774,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				}
 				if(request->type_flags & REQUEST_FLAG_MODIFY_RENDERER_VARIABLE)
 				{
+					ASSERT(request->renderer_variable.size);
 					dx11_modify_resource(dx, 
 						renderer_variables[request->renderer_variable.uid].buffer, 
 						request->renderer_variable.new_data, 
@@ -1749,9 +1796,9 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 					// LIST_GET(textures_list, request->set_shader_resource.texture_uid, texture_to_set);
 
 					Render_target* render_target_source;
-					LIST_GET(render_targets_list, request->set_shader_resource.render_target_uid, render_target_source);
+					LIST_GET(render_targets_list, request->set_shader_resource_from_rtv.rtv_uid, render_target_source);
 
-					dx->context->PSSetShaderResources(request->set_shader_resource.target_index,1, render_target_source->texture_view);
+					dx->context->PSSetShaderResources(request->set_shader_resource_from_rtv.target_index,1, render_target_source->texture_view);
 					ASSERT(true);	
 				}
 				if(request->type_flags & REQUEST_FLAG_SET_RASTERIZER_STATE)

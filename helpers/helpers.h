@@ -264,6 +264,7 @@ union Color
 		f32 g;
 		f32 b;
 	} rgb;
+	V4 v4;
 };
 internal Color
 init_color(f32 r, f32 g, f32 b, f32 a)
@@ -385,6 +386,13 @@ struct Vertex
 		u32 bone_indices[3];
 		Indices_triad32 bone_indices_triad;
 	};
+};
+
+struct Voxel_chunk_vertex
+{
+	V3 pos;
+	// Int2 texcoord;
+	// V3 normal; // TURN THIS INTO JUST 6 different values
 };
 
 struct Sound_sample{

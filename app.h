@@ -310,8 +310,6 @@ struct App_memory
 
 	LIST(Tex_info, tex_infos);
 	LIST(Font, fonts_list);
-
-	Camera camera;
 	
 	struct
 	{// this is meant to be passed to the shader 
@@ -391,15 +389,17 @@ enum RENDERER_REQUEST_TYPE_FLAGS
 	REQUEST_FLAG_MODIFY_RENDERER_VARIABLE = 0b10000,
 	REQUEST_FLAG_RESIZE_DEPTH_STENCIL_VIEW = 0b100000,
 	REQUEST_FLAG_MODIFY_DYNAMIC_MESH = 0b1000000,
-	REQUEST_FLAG_SET_VS = 0b10000000,
-	REQUEST_FLAG_SET_PS = 0b100000000,
-	REQUEST_FLAG_RESIZE_TARGET_VIEW = 0b1000000000,
-	REQUEST_FLAG_SET_BLEND_STATE = 0b10000000000,
-	REQUEST_FLAG_SET_RENDER_TARGET_AND_DEPTH_STENCIL = 0b100000000000,
-	REQUEST_FLAG_SET_SHADER_RESOURCE_FROM_RENDER_TARGET = 0b1000000000000,
-	REQUEST_FLAG_SET_RASTERIZER_STATE = 0b10000000000000,
-	REQUEST_FLAG_SET_SAMPLER = 0b100000000000000,
-	REQUEST_FLAG_CLEAR_RTV = 0b1000000000000000,
+	REQUEST_FLAG_MODIFY_DYNAMIC_TEXTURE = 0b10000000,
+	REQUEST_FLAG_SET_SHADER_RESOURCE_FROM_TEXTURE = 0b100000000,
+	REQUEST_FLAG_SET_VS = 0b1000000000,
+	REQUEST_FLAG_SET_PS = 0b10000000000,
+	REQUEST_FLAG_RESIZE_TARGET_VIEW = 0b100000000000,
+	REQUEST_FLAG_SET_BLEND_STATE = 0b1000000000000,
+	REQUEST_FLAG_SET_RENDER_TARGET_AND_DEPTH_STENCIL = 0b10000000000000,
+	REQUEST_FLAG_SET_SHADER_RESOURCE_FROM_RENDER_TARGET = 0b100000000000000,
+	REQUEST_FLAG_SET_RASTERIZER_STATE = 0b1000000000000000,
+	REQUEST_FLAG_SET_SAMPLER = 0b10000000000000000,
+	REQUEST_FLAG_CLEAR_RTV = 0b100000000000000000,
 };
 
 struct Renderer_request{
@@ -416,10 +416,11 @@ struct Renderer_request{
 		struct {
 			u16 mesh_uid;
 			u16 texinfo_uid;
-			u16 instances_count;
-			Instance_data* instances;
 			u16 dynamic_instances_mesh;
+			Instance_data* instances;
 			b8 flip_h;
+
+			u32 instances_count;//THIS IS JUST TEMPORAL
 		}instancing_data;
 	};
 	struct
@@ -453,12 +454,19 @@ struct Renderer_request{
 		u16 resize_depth_stencil_view_uid;
 		u16 resize_rtv_uid;
 		u16 set_depth_stencil_uid;	
+		
+		struct 
+		{
+			u16 target_index;
+			u16 rtv_uid;
+		}set_shader_resource_from_rtv;
 
 		struct 
 		{
 			u16 target_index;
-			u16 render_target_uid;
-		}set_shader_resource;
+			u16 tex_uid;
+		}set_shader_resource_from_texture;
+		
 		
 
 		u16* set_rtv_uids;
@@ -469,6 +477,13 @@ struct Renderer_request{
 			u16 uid;
 			Color color;
 		}clear_rtv;
+		struct 
+		{
+			u16 uid;
+			void* new_data;
+			u32 size;
+		}modifiable_texture;
+		
 	};
 };
 
@@ -493,6 +508,7 @@ enum Asset_request_type{
 	SOUND_FROM_FILE_REQUEST,
 
 	TEX_FROM_SURFACE_REQUEST,
+	CREATE_DYNAMIC_TEXTURE3D,
 	MESH_FROM_PRIMITIVES_REQUEST,
 	CREATE_CONSTANT_BUFFER_REQUEST,
 	CREATE_DYNAMIC_MESH,
@@ -533,6 +549,11 @@ struct Asset_request{
 		Mesh_primitive mesh_primitives; 
 		
 		Surface tex_surface;
+
+		struct{
+			Int3 sizes;
+			u16* texview_uid;
+		}tex3d;
 		
 		//TODO: THIS ARE NOT ASSETS BUT I DON'T KNOW WHERE TO PUT'EM
 		b32 enable_alpha_blending;
