@@ -426,7 +426,7 @@ win_main_window_proc(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
 		case WM_SIZING:
 		{
 			RECT* result_rect = (RECT*)lParam;
-			Int2 new_size = {result_rect->right - result_rect->left, result_rect->bottom - result_rect->top};
+			Int2 new_size = {MAX(result_rect->right - result_rect->left, 200), MAX(result_rect->bottom - result_rect->top, 200)};
 
 			b32* enforce_aspect_ratio = (b32*)GetPropA(window,"enforce_aspect_ratio");
 
@@ -478,6 +478,11 @@ win_main_window_proc(HWND window, UINT message, WPARAM wParam, LPARAM lParam)
 				result_rect->right = result_rect->left + (new_width+winclient_diff.x);
 				result_rect->bottom = new_bottom;
 				ASSERT(true);	
+			}
+			else
+			{
+				result_rect->right = result_rect->left + new_size.x;
+				result_rect->bottom = result_rect->top + new_size.y;
 			}
 		}break;
 		ASSERMSG(WM_MOUSEWHEEL)

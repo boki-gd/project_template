@@ -303,9 +303,14 @@ dx11_create_rasterizer_state(D3D* dx, Dx11_rasterizer_state** result, D3D11_FILL
 	ASSERTHR(hr);
 }
 
-internal void
+internal bool
 dx11_create_blend_state(D3D* dx, Dx11_blend_state** result, bool enable_alpha_blending)
 {
+	b32 is_debug = DEBUGMODE;
+	if(!is_debug && !enable_alpha_blending)
+	{
+		return false;
+	}
 	HRESULT hr;
 	D3D11_RENDER_TARGET_BLEND_DESC d  = {0};
 	d.BlendEnable = enable_alpha_blending;
@@ -318,8 +323,15 @@ dx11_create_blend_state(D3D* dx, Dx11_blend_state** result, bool enable_alpha_bl
 	d.RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;    
 	D3D11_BLEND_DESC desc = {0};
 	desc.RenderTarget[0] = d;
+	desc.RenderTarget[1] = d;
+	desc.RenderTarget[2] = d;
+	desc.RenderTarget[3] = d;
+	desc.RenderTarget[4] = d;
+	desc.RenderTarget[5] = d;
+	desc.RenderTarget[6] = d;
+	desc.RenderTarget[7] = d;
 	hr = dx->device->CreateBlendState(&desc, result); //TODO: AAAAAAAAAA
-	ASSERTHR(hr);
+	return SUCCEEDED(hr);
 }
 
 
