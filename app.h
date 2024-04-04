@@ -545,7 +545,7 @@ struct Asset_request{
 		};
 		struct{
 			Renderer_variable_register_index register_index;
-			u16 size;
+			u16 size;// constant buffer can't be bigger than 65536 (actually it can but it's complicated)
 		}constant_buffer;
 
 		Mesh_primitive mesh_primitives; 
