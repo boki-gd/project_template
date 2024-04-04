@@ -518,6 +518,7 @@ dx11_draw_mesh(D3D* dx, Dx_mesh* mesh){
 	dx->context->IASetPrimitiveTopology( mesh->topology );
 	dx11_bind_vertex_buffer(dx, mesh->vertex_buffer, mesh->vertex_size);
 	// FINALLY DRAW
+	ASSERT(mesh->index_buffer);
 	dx->context->IASetIndexBuffer(mesh->index_buffer, DXGI_FORMAT_R16_UINT, 0);
 	dx->context->DrawIndexed(mesh->indices_count, 0, 0);
 }

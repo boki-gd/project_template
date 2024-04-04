@@ -771,7 +771,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				tex3d_desc.Depth = request->tex3d.sizes.z;
 				tex3d_desc.MipLevels = 1;
 				tex3d_desc.Format = DXGI_FORMAT_R32_UINT;
-				tex3d_desc.Usage = D3D11_USAGE_DYNAMIC;
+				tex3d_desc.Usage = D3D11_USAGE_DEFAULT;
 				tex3d_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
 				tex3d_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
@@ -1643,8 +1643,11 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 						request->modified_mesh.vertex_count * modify_mesh->vertex_size
 					);
 
-					dx11_modify_resource(dx, modify_mesh->index_buffer, request->modified_mesh.indices,
-						request->modified_mesh.indices_count * sizeof(u16));
+					if(request->modified_mesh.indices)
+					{
+						dx11_modify_resource(dx, modify_mesh->index_buffer, request->modified_mesh.indices,
+							request->modified_mesh.indices_count * sizeof(u16));
+					}
 					ASSERT(true);
 				}// TODO: UNIFY THIS 2 FLAGS INTO "REQUEST_FLAG_MODIFY_DYNAMIC_RESOURCE"
 				if(request->type_flags & REQUEST_FLAG_MODIFY_DYNAMIC_TEXTURE) 
@@ -1653,13 +1656,23 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 					Dx11_texture_view** texture_view;
 					LIST_GET(textures_list, request->modifiable_texture.uid, texture_view);
 					(*texture_view)->GetResource(&modify_texture);
-					dx11_modify_resource(dx, modify_texture, request->modifiable_texture.new_data, request->modifiable_texture.size);
+					// dx11_modify_resource(dx, modify_texture, request->modifiable_texture.new_data, request->modifiable_texture.size);
+					D3D11_BOX texbox = {0,0,0, 64*5, 64*5, 64*5};
+					dx->context->UpdateSubresource(modify_texture, 0, 
+						&texbox, 
+						request->modifiable_texture.new_data, 
+						64*5*sizeof(u32),
+						64*5*64*5*sizeof(u32));
 					modify_texture->Release();
 				}
 				if(request->type_flags & REQUEST_FLAG_SET_SHADER_RESOURCE_FROM_TEXTURE)
 				{
 					Dx11_texture_view** texture_view; 
-					LIST_GET(textures_list, request->set_shader_resource_from_texture.tex_uid, texture_view);
+					if(request->set_shader_resource_from_texture.tex_uid != NULL_INDEX16){
+						LIST_GET(textures_list, request->set_shader_resource_from_texture.tex_uid, texture_view);
+					}else{
+						texture_view = ARENA_PUSH_STRUCT(temp_arena, Dx11_texture_view*);
+					}
 					dx->context->PSSetShaderResources(request->set_shader_resource_from_texture.target_index, 1, texture_view);
 				}
 				if(request->type_flags & REQUEST_FLAG_RESIZE_DEPTH_STENCIL_VIEW)
