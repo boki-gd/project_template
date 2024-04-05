@@ -10,7 +10,8 @@ cbuffer object_buffer : register(b0)
 
 cbuffer projection_view_buffer : register(b1)
 {
-	matrix projection_view_matrix;
+	matrix world_view_matrix;
+	matrix projection_matrix;
 };
 
 cbuffer camera_pos_buffer : register(b2){

@@ -276,6 +276,17 @@ struct Int3
     int z;
 };
 
+internal Int3
+int3(int x, int y, int z)
+{
+    return {x,y,z};
+}
+internal bool
+operator ==(Int3 a, Int3 b)
+{
+    return a.x == b.x && a.y == b.y && a.z == b.z;
+}
+
 union V3
 {
     struct {
@@ -296,6 +307,11 @@ internal V3
 v3(f32 x, f32 y, f32 z)
 {
     return {x,y,z};
+}
+internal Int3
+v3_to_int3(V3 v)
+{
+    return {(int)floorf(v.x), (int)floorf(v.y), (int)floorf(v.z)};
 }
 internal V3
 v3_invert(V3 v)
@@ -765,6 +781,54 @@ line_vs_rect(V3 line_0, V3 line_v, V3 p1, V3 p2, V3 p3, V3 p4, V3* intersection_
     }
 }
 #endif
+
+
+// returns the tvalue that the line needs to advance to intersect with the box
+internal float 
+line_vs_aabb(V3 line_p, V3 line_d, V3 box_min, V3 box_max) {
+    float temp_t1 = (box_min.x - line_p.x) / line_d.x;
+    float temp_t2 = (box_max.x - line_p.x) / line_d.x;
+
+    float t_min = MIN(temp_t1, temp_t2);
+    float t_max = MAX(temp_t1, temp_t2);
+
+    temp_t1 = (box_min.y - line_p.y) / line_d.y;
+    temp_t2 = (box_max.y - line_p.y) / line_d.y;
+
+    float ty_min = MIN(temp_t1, temp_t2);
+    float ty_max = MAX(temp_t1, temp_t2);
+
+    if ((t_min > ty_max) || (ty_min > t_max))
+        return -1;
+
+
+    if (ty_min > t_min)
+        t_min = ty_min;
+
+    if (ty_max < t_max)
+        t_max = ty_max;
+        
+    temp_t1 = (box_min.z - line_p.z) / line_d.z;
+    temp_t2 = (box_max.z - line_p.z) / line_d.z;
+
+    float tz_min = MIN(temp_t1, temp_t2);
+    float tz_max = MAX(temp_t1, temp_t2);
+
+
+    if ((t_min > tz_max) || (tz_min > t_max))
+        return -1;
+
+    if (tz_min > t_min)
+        t_min = tz_min;
+
+    if (tz_max < t_max)
+        t_max = tz_max;
+
+    if (t_min < 0 && t_max < 0)
+        return -1;
+
+    return t_min; // Intersection exists
+}
 
 internal V2
 v2_rotate(V2 vector, f32 angle){

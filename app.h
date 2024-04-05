@@ -368,14 +368,16 @@ enum Renderer_variable_register_index : u16
 {
 	// VERTEX SHADER REGISTER INDICES
 	OBJECT_DATA_REGISTER_INDEX = 0,
-	PROJECTION_VIEW_REGISTER_INDEX,
+	PROJECTION_AND_WORLD_VIEW_REGISTER_INDEX,
 	CAMERA_POS_REGISTER_INDEX,
 	BONE_TRANSFORMS_REGISTER_INDEX,
+	FIRST_AVAILABLE_VS_REGISTER_INDEX,
 	
 
 	// PIXEL SHADER REGISTER_INDICES
-	SCREEN_DATA_REGISTER_INDEX = 14,
+	SCREEN_DATA_REGISTER_INDEX = 14, // this is pixel shader register index 0
 	TIME_REGISTER_INDEX,
+	FIRST_AVAILABLE_PS_REGISTER_INDEX,
 };
 
 //@@bitwise_enum@@
@@ -435,7 +437,7 @@ struct Renderer_request{
 		struct
 		{
 			u16 mesh_uid;
-			Vertex* vertices;
+			void* vertices;
 			u16 vertex_count;
 			u16* indices;
 			u16 indices_count;
@@ -543,7 +545,7 @@ struct Asset_request{
 		};
 		struct{
 			Renderer_variable_register_index register_index;
-			u16 size;
+			u16 size;// constant buffer can't be bigger than 65536 (actually it can but it's complicated)
 		}constant_buffer;
 
 		Mesh_primitive mesh_primitives; 
