@@ -805,7 +805,6 @@ instance_char(App_memory* memory, Font* font, u8 character,  Int2 char_pos, u32 
 		render_pos.x = ( (2.0f) * ( (f32)(char_pos.x + char_texinfo->xoffset) / (client_size.x)) ) - 1.0f;
 		render_pos.y = (2.0f * ((f32)(char_pos.y - char_texinfo->yoffset - font->ascent)) / client_size.y) + 1.0f;
 		render_pos.z = 98.0f - zpos;
-		render_pos.z = 0;
 
 		Instance_data* char_instance = ARENA_PUSH_STRUCT(memory->temp_arena, Instance_data);
 		char_instance->color = color;
