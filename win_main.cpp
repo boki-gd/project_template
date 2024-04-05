@@ -170,7 +170,11 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 			0
 		);
 		ASSERT(window);
-		if(!window) return 1; 
+		if(!window)
+		{
+			MessageBoxA(0, "CreateWindowExA failed", 0, MB_OK|MB_ICONERROR);
+			return 1; 
+		} 
 	}
 
 	ShowWindow(window, SW_MAXIMIZE); // MAXIMIZING WINDOW
@@ -247,6 +251,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 		
 		if(!SUCCEEDED(hr))
 		{
+			MessageBoxA(window, "D3D11CreateDevice failed", 0, MB_OK|MB_ICONERROR);
 			return 11;
 		}
 
@@ -598,6 +603,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				Dx11_blend_state** blend_state; PUSH_BACK(blend_states_list, assets_arena, blend_state);
 				if(!dx11_create_blend_state(dx, blend_state, request->enable_alpha_blending))
 				{
+					MessageBoxA(window, "CreateBlendState failed", 0, MB_OK|MB_ICONERROR);
 					return 10;
 				}
 			}break;
