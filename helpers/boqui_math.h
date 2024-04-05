@@ -944,3 +944,106 @@ f32_ease_in_out_quad(f32 t)
 {
     return t < 0.5f ? 2*t*t : 1- ((-2*t+2)*(-2*t+2)/2);
 }
+
+internal f32
+sample_2d_perlin_noise(float* noisemap, int width, int height, int x, int y, u32 max_iterations, int initial_sample_resolution, float influence_step_multiplier)
+{
+    float amplitude = 1.0f;
+
+    int step_count = initial_sample_resolution;
+    float cumulative_value = 0;
+    float cumulative_amplitude = 0;
+
+    UNTIL(current_i, max_iterations)
+    {
+        int xstep_size = width/step_count;
+        int ystep_size = height/step_count;
+
+        if(!xstep_size || !ystep_size) break;
+
+        int ix1 = (x/xstep_size)*xstep_size;
+        int iy1 = (y/ystep_size)*ystep_size;
+        int ix2 = (((x+xstep_size)/xstep_size)*xstep_size)%width;
+        int iy2 = (((y+ystep_size)/ystep_size)*ystep_size)%height;
+
+        float samplex1y1 = noisemap[iy1*width + ix1];
+        float samplex2y1 = noisemap[iy1*width + ix2];
+        float samplex1y2 = noisemap[iy2*width + ix1];
+        float samplex2y2 = noisemap[iy2*width + ix2];
+
+        float tx = ((float)x-ix1)/xstep_size;
+        float ty = ((float)y-iy1)/ystep_size;
+
+        float lerped_y1 = f32_lerp(samplex1y1, samplex2y1, tx);
+        float lerped_y2 = f32_lerp(samplex1y2, samplex2y2, tx);
+
+        cumulative_value += amplitude * f32_lerp(lerped_y1, lerped_y2, ty);
+        cumulative_amplitude += amplitude;
+        
+        amplitude = influence_step_multiplier*amplitude;
+        step_count *= 2;
+    }
+
+    return cumulative_value/cumulative_amplitude;
+}
+
+internal f32
+sample_3d_perlin_noise(float* noisemap, 
+    int width, int height, int depth, 
+    int x, int y, int z,
+    u32 max_iterations, int initial_sample_resolution, float influence_step_multiplier
+    )
+{
+    float amplitude = 1.0f;
+
+    int step_count = initial_sample_resolution;
+    float cumulative_value = 0;
+    float cumulative_amplitude = 0;
+
+    UNTIL(current_i, max_iterations)
+    {
+        int xstep_size = width/step_count;
+        int ystep_size = height/step_count;
+        int zstep_size = depth/step_count;
+
+        if(!xstep_size || !ystep_size || !zstep_size) break;
+
+        int ix1 = (x/xstep_size)*xstep_size;
+        int iy1 = (y/ystep_size)*ystep_size;
+        int iz1 = (z/zstep_size)*zstep_size;
+        int ix2 = (((x+xstep_size)/xstep_size)*xstep_size)%width;
+        int iy2 = (((y+ystep_size)/ystep_size)*ystep_size)%height;
+        int iz2 = (((z+zstep_size)/zstep_size)*zstep_size)%depth;
+
+        float samplex1y1z1 = noisemap[iz1*width*height + iy1*width + ix1];
+        float samplex2y1z1 = noisemap[iz1*width*height + iy1*width + ix2];
+        float samplex1y2z1 = noisemap[iz1*width*height + iy2*width + ix1];
+        float samplex2y2z1 = noisemap[iz1*width*height + iy2*width + ix2];
+        float samplex1y1z2 = noisemap[iz2*width*height + iy1*width + ix1];
+        float samplex2y1z2 = noisemap[iz2*width*height + iy1*width + ix2];
+        float samplex1y2z2 = noisemap[iz2*width*height + iy2*width + ix1];
+        float samplex2y2z2 = noisemap[iz2*width*height + iy2*width + ix2];
+
+        float tx = ((float)x-ix1)/xstep_size;
+        float ty = ((float)y-iy1)/ystep_size;
+        float tz = ((float)z-iz1)/zstep_size;
+
+        float lerped_y1z1 = f32_lerp(samplex1y1z1, samplex2y1z1, tx);
+        float lerped_y2z1 = f32_lerp(samplex1y2z1, samplex2y2z1, tx);
+        float lerped_y1z2 = f32_lerp(samplex1y1z2, samplex2y1z2, tx);
+        float lerped_y2z2 = f32_lerp(samplex1y2z2, samplex2y2z2, tx);
+
+        float lerped_z1 = f32_lerp(lerped_y1z1, lerped_y2z1, ty);
+        float lerped_z2 = f32_lerp(lerped_y1z2, lerped_y2z2, ty);
+
+        
+
+        cumulative_value += amplitude * f32_lerp(lerped_z1, lerped_z2, tz);
+        cumulative_amplitude += amplitude;
+        
+        amplitude = influence_step_multiplier*amplitude;
+        step_count *= 2;
+    }
+
+    return cumulative_value/cumulative_amplitude;
+}
