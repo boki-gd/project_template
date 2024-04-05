@@ -713,43 +713,239 @@ push_asset_sound_request(Asset_request* request, Memory_arena* arena, String fil
 	request->sound_uid = sound_uid;
 }
 
-// OLD PRINTO_SCREEN FUNCTION
-#if 0
+
+// TEXT RENDERING 
+#define PUSH_BACK_RENDER_REQUEST(render_list) \
+   ASSERT(!request || request->type_flags != REQUEST_FLAG_RENDER_OBJECT || (request->color.a && request->scale.x && request->scale.y && request->scale.z));\
+   PUSH_BACK(render_list, memory->temp_arena, request)
+
+
 internal void
-printo_screen(App_memory* memory,Int2 screen_size, LIST(Renderer_request,render_list),String text, V2 pos, Color color){
-	f32 line_height = 18;
-	Renderer_request* request = 0;
-	f32 xpos = pos.x;
-	UNTIL(c, text.length){
-		char current_char = text.text[c];
-		char char_index = CHAR_TO_INDEX(current_char);
+render_char(App_memory* memory, Font* font, u8 character,  Int2 char_pos, u32 zpos,  Color color, Int2 client_size, LIST(Renderer_request, render_list), u16 plane_mesh_uid)
+{
+	int char_width = 8;
+	Tex_info* char_texinfo;
+	u32 character_font_index = character - font->first_char;
+	LIST_GET(memory->tex_infos, font->texinfo_uids[character_font_index], char_texinfo);
+	
+	V3 char_final_size = {0,0,1};
+	// screen size to client size
+	
+	// f32 final_x_pos = (memory->aspect_ratio*2.0f*ui_element->pos.x/client_size.x) - memory->aspect_ratio;
+	// f32 final_y_pos = (2.0f*ui_element->pos.y/client_size.y) + 1.0f;
 
-		if(current_char == ' ')
-			xpos += 16.0f/screen_size.x;
-		else{			
-			PUSH_BACK(render_list, memory->temp_arena, request);
-			request->type_flags = REQUEST_FLAG_RENDER_IMAGE_TO_SCREEN;
-			Object3d* object = &request->object3d;
-			object->mesh_uid = memory->meshes.plane_mesh_uid;
-			object->texinfo_uid = memory->font_tex_infos_uids[char_index];
+	// f32 final_x_size = memory->aspect_ratio*2.0f*ui_element->size.x/client_size.x;
+	// f32 final_y_size = 2.0f*ui_element->size.y/client_size.y;
 
-			Tex_info* tex_info; LIST_GET(memory->tex_infos, object->texinfo_uid, tex_info);
+	char_final_size.x = (f32)(2*char_texinfo->w) / (f32)(client_size.x);
+	char_final_size.y = (f32)(2*char_texinfo->h) / (f32)(client_size.y);
 
-			V2 normalized_scale = normalize_texture_size(screen_size, {tex_info->w, tex_info->h});
-			object->scale = {normalized_scale.x, normalized_scale.y, 1};
-			
-			object->pos.x = xpos+((f32)(tex_info->xoffset)/screen_size.x);
-			object->pos.y = pos.y-((2.0f*(line_height+tex_info->yoffset))/screen_size.y);
-
-			object->rotation = {0,0,0};
-			object->color = color;
-
-			request->object3d.texinfo_uid = memory->font_tex_infos_uids[char_index];
-			xpos += 16.0f / screen_size.x;
+	Renderer_request* request = {0};
+	if(char_final_size.x && char_final_size.y && FIRST_CHAR < character && character < LAST_CHAR )
+	{  
+		PUSH_BACK_RENDER_REQUEST(render_list);
+		request->type_flags = REQUEST_FLAG_RENDER_OBJECT;
+		request->object3d.fill(
+			plane_mesh_uid,
+			font->texinfo_uids[character_font_index],
+			{
+				(2.0f * ( (f32)(char_pos.x + char_texinfo->xoffset) / client_size.x) ) - 1.0f, 
+				(2.0f * ((f32)(char_pos.y - char_texinfo->yoffset - font->ascent)) / client_size.y) + 1.0f, 
+				98.0f - zpos
+			},
+			char_final_size,
+			UNIT_QUATERNION,
+			color
+		);
+	}else{
+		if(character != ' ')
+		{
+			PUSH_BACK_RENDER_REQUEST(render_list);
+			request->type_flags = REQUEST_FLAG_RENDER_OBJECT;
+			request->object3d.fill(
+				plane_mesh_uid,
+				0,
+				{
+					(2.0f* ( (f32)(char_pos.x) / client_size.x) ) - 1.0f, 
+					(2.0f * (char_pos.y)) / client_size.y, 
+					1.0f
+				},
+				{2.0f*char_width/client_size.x, 2.0f*18.0f/client_size.y, 1},
+				UNIT_QUATERNION,
+				color
+			);  
 		}
 	}
 }
-#endif
+
+//TODO: i will do instancing in the future so change the rendering part
+internal void
+instance_char(App_memory* memory, Font* font, u8 character,  Int2 char_pos, u32 zpos,  Color color, Int2 client_size)
+{
+	int char_width = 8;
+	Tex_info* char_texinfo;
+	u32 character_font_index = character - font->first_char;
+	LIST_GET(memory->tex_infos, font->texinfo_uids[character_font_index], char_texinfo);
+	
+	V3 char_final_size = {0,0,1};
+	// screen size to client size
+	
+	// f32 final_x_pos = (memory->aspect_ratio*2.0f*ui_element->pos.x/client_size.x) - memory->aspect_ratio;
+	// f32 final_y_pos = (2.0f*ui_element->pos.y/client_size.y) + 1.0f;
+
+	// f32 final_x_size = memory->aspect_ratio*2.0f*ui_element->size.x/client_size.x;
+	// f32 final_y_size = 2.0f*ui_element->size.y/client_size.y;
+
+	char_final_size.x = (f32)(2*char_texinfo->w) / (f32)(client_size.x);
+	char_final_size.y = (f32)(2*char_texinfo->h) / (f32)(client_size.y);
+
+	if(char_final_size.x && char_final_size.y && FIRST_CHAR < character && character < LAST_CHAR )
+	{  
+		V3 render_pos;
+		render_pos.x = ( (2.0f) * ( (f32)(char_pos.x + char_texinfo->xoffset) / (client_size.x)) ) - 1.0f;
+		render_pos.y = (2.0f * ((f32)(char_pos.y - char_texinfo->yoffset - font->ascent)) / client_size.y) + 1.0f;
+		render_pos.z = 98.0f - zpos;
+		render_pos.z = 0;
+
+		Instance_data* char_instance = ARENA_PUSH_STRUCT(memory->temp_arena, Instance_data);
+		char_instance->color = color;
+		char_instance->object_transform = 
+			matrix_scale(char_final_size)*
+			matrix_translation(render_pos)
+			;
+		char_instance->texrect = char_texinfo->texrect;
+	}else{
+		if(character != ' ')
+		{
+			//TODO: print a square when the character is not a valid one
+			char_width;
+
+			// PUSH_BACK_RENDER_REQUEST(render_list);
+			// request->type_flags = REQUEST_FLAG_RENDER_OBJECT;
+			// request->object3d.fill(
+			// 	plane_mesh_uid,
+			// 	*assets->textures.white_tex,
+			// 	{
+			// 		(memory->aspect_ratio*2.0f* ( (f32)(char_pos.x) / client_size.x) ) - 1.0f, 
+			// 		(2.0f * (char_pos.y)) / client_size.y, 
+			// 		1.0f
+			// 	},
+			// 	{memory->aspect_ratio*2.0f*char_width/client_size.x, 2.0f*18.0f/client_size.y, 1},
+			// 	UNIT_QUATERNION,
+			// 	color
+			// );  
+		}
+	}
+}
+
+internal void
+render_text(App_memory* memory, Font* font, String text, Int2 pos, u32 zpos, Color color, Int2 client_size, LIST(Renderer_request, render_list), u16 plane_mesh_uid)
+{
+   s32 current_x = 0;
+   s32 current_y = 0;
+	int char_width = 8;
+
+   UNTIL(char_i, text.length)
+   {
+      u8 current_char = text.text[char_i];
+      if(FIRST_CHAR < current_char && current_char < LAST_CHAR)
+      {
+         render_char(memory, font, current_char, {pos.x+current_x, pos.y+current_y}, zpos, color, client_size, render_list, plane_mesh_uid);
+         current_x += char_width;
+      }
+      else if( current_char == ' ')
+      {
+         current_x += char_width;
+      }
+      else if(current_char == '\t')
+      {
+         current_x += char_width*3;
+      }
+   }
+}
+
+internal void
+render_clamped_text(App_memory* memory, Font* font, 
+	String text, 
+	Int2 pos, Int2 size,
+	u32 zpos, Color color, Int2 client_size, LIST(Renderer_request, render_list), u16 plane_mesh_uid)
+{
+   s32 current_x = 0;
+   s32 current_y = 0;
+	int char_width = 8;
+	int line_height = 18;
+
+   UNTIL(char_i, text.length)
+   {
+      u8 current_char = text.text[char_i];
+      if(FIRST_CHAR < current_char && current_char < LAST_CHAR)
+      {
+         render_char(memory, font, current_char, {pos.x+current_x, pos.y+current_y}, zpos, color, client_size, render_list, plane_mesh_uid);
+         current_x += char_width;
+      }
+      else if( current_char == ' ')
+      {
+         current_x += char_width;
+      }
+      else if(current_char == '\t')
+      {
+         current_x += char_width*3;
+      }
+
+		if(size.x-char_width < current_x)
+		{
+			current_x = 0;
+			current_y -= line_height;
+			if(current_y < -(size.y-line_height))
+			{
+				break;
+			}
+		}
+   }
+}
+
+
+internal void
+instance_clamped_text(App_memory* memory, Font* font, 
+	String text, 
+	Int2 pos, Int2 size,
+	u32 zpos, Color color, Int2 client_size)
+{
+   s32 current_x = 0;
+   s32 current_y = 0;
+	int char_width = 8;
+	int line_height = 18;
+
+   UNTIL(char_i, text.length)
+   {
+      u8 current_char = text.text[char_i];
+      if(FIRST_CHAR < current_char && current_char < LAST_CHAR)
+      {
+         instance_char(memory, font, current_char, {pos.x+current_x, pos.y+current_y}, zpos, color, client_size);
+         current_x += char_width;
+      }
+      else if( current_char == ' ')
+      {
+         current_x += char_width;
+      }
+      else if(current_char == '\t')
+      {
+         current_x += char_width*3;
+      }
+
+		if(size.x-char_width < current_x)
+		{
+			current_x = 0;
+			current_y -= line_height;
+			if(current_y < -(size.y-line_height))
+			{
+				break;
+			}
+		}
+   }
+}
+
+
 
 internal b8
 holding_key(App_memory* memory, Input_keyboard_indices key)
@@ -777,7 +973,3 @@ holding_key(App_memory* memory, Input_keyboard_indices key)
 	return false;
 }
 
-
-#define PUSH_BACK_RENDER_REQUEST(render_list) \
-   ASSERT(!request || request->type_flags != REQUEST_FLAG_RENDER_OBJECT || (request->color.a && request->scale.x && request->scale.y && request->scale.z));\
-   PUSH_BACK(render_list, memory->temp_arena, request)
