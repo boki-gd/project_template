@@ -170,7 +170,11 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 			0
 		);
 		ASSERT(window);
-		if(!window) return 1; 
+		if(!window)
+		{
+			MessageBoxA(0, "CreateWindowExA failed", 0, MB_OK|MB_ICONERROR);
+			return 1; 
+		} 
 	}
 
 	ShowWindow(window, SW_MAXIMIZE); // MAXIMIZING WINDOW
@@ -228,11 +232,11 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 		D3D_FEATURE_LEVEL feature_levels[] = 
 		{
 			D3D_FEATURE_LEVEL_11_0,
-			D3D_FEATURE_LEVEL_10_1,
-			D3D_FEATURE_LEVEL_10_0,
-			D3D_FEATURE_LEVEL_9_3,
-			D3D_FEATURE_LEVEL_9_2,
-			D3D_FEATURE_LEVEL_9_1,
+			// D3D_FEATURE_LEVEL_10_1,
+			// D3D_FEATURE_LEVEL_10_0,
+			// D3D_FEATURE_LEVEL_9_3,
+			// D3D_FEATURE_LEVEL_9_2,
+			// D3D_FEATURE_LEVEL_9_1,
 		};
 		D3D_FEATURE_LEVEL result_feature_level;
 
@@ -244,7 +248,12 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 
 		hr = D3D11CreateDevice(0, D3D_DRIVER_TYPE_HARDWARE, 0, create_device_flags, feature_levels, 
 			ARRAYCOUNT(feature_levels), D3D11_SDK_VERSION, &dx->device, &result_feature_level, &dx->context);
-		ASSERTHR(hr);
+		
+		if(!SUCCEEDED(hr))
+		{
+			MessageBoxA(window, "D3D11CreateDevice failed", 0, MB_OK|MB_ICONERROR);
+			return 11;
+		}
 
 
 	#if DEBUGMODE
@@ -592,7 +601,11 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				*request->p_uid = (u16)current_index;
 
 				Dx11_blend_state** blend_state; PUSH_BACK(blend_states_list, assets_arena, blend_state);
-				dx11_create_blend_state(dx, blend_state, request->enable_alpha_blending);
+				if(!dx11_create_blend_state(dx, blend_state, request->enable_alpha_blending))
+				{
+					MessageBoxA(window, "CreateBlendState failed", 0, MB_OK|MB_ICONERROR);
+					return 10;
+				}
 			}break;
 
 
@@ -1606,8 +1619,6 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 
 		if(screen_render_target->target_view)
 		{		
-			
-
 			dx->context->ClearRenderTargetView(render_targets_list[0]->target_view, (float*)&memory.bg_color);
 			
 			u32 counter = 0;
