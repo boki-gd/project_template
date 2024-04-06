@@ -119,6 +119,14 @@ struct Vertex_shader
 	Dx11_input_layout* input_layout;
 };
 
+struct Pixel_shader
+{
+	String filename; // this is only used in debug mode for shader hot reloading
+	FILETIME last_write_time;
+
+	Dx11_pixel_shader* shader;
+};
+
 struct Depth_stencil
 {
 	Dx11_depth_stencil_state* state;

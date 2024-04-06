@@ -415,7 +415,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 	LIST(Dx11_texture_view*, textures_list) = {0};
 
 	LIST(Vertex_shader, vertex_shaders_list) = {0};
-	LIST(Dx11_pixel_shader*, pixel_shaders_list) = {0};
+	LIST(Pixel_shader, pixel_shaders_list) = {0};
 	LIST(Dx_mesh, meshes_list) = {0};
 	LIST(Dx11_blend_state*, blend_states_list) = {0};
 	LIST(Depth_stencil, depth_stencils_list) = {0};
@@ -555,8 +555,13 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				// CREATING PS
 				File_data compiled_ps = win_read_file(request->filename, temp_arena);
 
-				Dx11_pixel_shader** ps; PUSH_BACK(pixel_shaders_list, assets_arena, ps);
-				dx11_create_ps(dx, compiled_ps, ps);
+				Pixel_shader* ps; PUSH_BACK(pixel_shaders_list, assets_arena, ps);
+				dx11_create_ps(dx, compiled_ps, &ps->shader);
+
+				ps->filename.length = request->filename.length;
+				ps->filename.text = (char*)arena_push_data(permanent_arena, request->filename.text, request->filename.length);
+				arena_push_size(permanent_arena,1);
+				ps->last_write_time = win_get_last_write_time(ps->filename.text);
 			}break;
 
 
@@ -1079,6 +1084,21 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				
 				dx11_create_vs(dx, compiled_vs, &current_vs->shader);				
 				current_vs->last_write_time = win_get_last_write_time(current_vs->filename.text);
+			}
+		}
+		FOREACH(Pixel_shader, current_ps, pixel_shaders_list)
+		{
+			FILETIME ps_last_write_time = win_get_last_write_time(current_ps->filename.text);
+			if(CompareFileTime(&ps_last_write_time, &current_ps->last_write_time) != 0)
+			{
+				current_ps->shader->Release();
+				String temp_filename = concat_strings(current_ps->filename, string(".temp"), temp_arena);
+				win_copy_file(current_ps->filename, temp_filename);
+				File_data compiled_ps = win_read_file(temp_filename, temp_arena);
+				win_delete_file(temp_filename);
+				
+				dx11_create_ps(dx, compiled_ps, &current_ps->shader);				
+				current_ps->last_write_time = win_get_last_write_time(current_ps->filename.text);
 			}
 		}
 		#endif
@@ -1736,8 +1756,8 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				}
 				if(request->type_flags & REQUEST_FLAG_SET_PS)
 				{
-					Dx11_pixel_shader** pixel_shader; LIST_GET(pixel_shaders_list, request->pshader_uid, pixel_shader);
-					dx->context->PSSetShader(*pixel_shader, 0, 0);
+					Pixel_shader* pixel_shader; LIST_GET(pixel_shaders_list, request->pshader_uid, pixel_shader);
+					dx->context->PSSetShader(pixel_shader->shader, 0, 0);
 				}
 				if(request->type_flags & REQUEST_FLAG_SET_BLEND_STATE)
 				{
@@ -2121,8 +2141,8 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 		current_vs->input_layout->Release();
 	}
 
-	FOREACH(Dx11_pixel_shader*, current_ps, pixel_shaders_list){
-		(*current_ps)->Release();
+	FOREACH(Pixel_shader, current_ps, pixel_shaders_list){
+		(current_ps->shader)->Release();
 	}
 
 	FOREACH(Dx11_blend_state*, current_blend, blend_states_list){
