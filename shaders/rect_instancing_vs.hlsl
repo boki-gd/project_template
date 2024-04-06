@@ -16,6 +16,5 @@ VS_OUTPUT_DEFAULT vs(VS_INPUT_DEFAULT input)
 	result.texcoord.y = input.instance_texrect.y + (input.texcoord.y * input.instance_texrect.w);
 
    result.color = input.instance_color;
-   
    return result;
 }

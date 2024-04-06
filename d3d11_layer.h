@@ -112,6 +112,9 @@ struct Dx_mesh
 //where should this be defined?
 struct Vertex_shader
 {
+	String filename; // this is only used in debug mode for shader hot reloading
+	FILETIME last_write_time;
+
 	Dx11_vertex_shader* shader;
 	Dx11_input_layout* input_layout;
 };
@@ -535,3 +538,67 @@ dx11_draw_mesh(D3D* dx, Dx_mesh* mesh){
 	dx->context->DrawIndexed(mesh->indices_count, 0, 0);
 }
 
+
+internal void
+create_vertex_shader(D3D* dx, DXGI_FORMAT* ie_formats_list, u32* ie_formats_sizes, Asset_request* request, File_data compiled_vs, Memory_arena* temp_arena, Vertex_shader* vs)
+{
+	// COMPILING VS
+		// File_data compiled_vs = dx11_get_compiled_shader(request->filename, temp_arena, "vs", VS_PROFILE);
+	// CREATING VS
+
+	s32 MAX_IE_SIZE = sizeof(f32)*4;
+	
+	u32 ie_count = 0;
+	#define USE_APPEND_ALIGNED_ELEMENT 1
+
+	#if USE_APPEND_ALIGNED_ELEMENT
+	#else
+		u32 aligned_byte_offsets [2] = {0};
+	#endif
+	D3D11_INPUT_ELEMENT_DESC* ied = (D3D11_INPUT_ELEMENT_DESC*)(temp_arena->data+temp_arena->used);
+	s32 total_element_size = 0;
+	UNTIL(j, ARRAYLEN(request->ied.names))
+	{
+		s32 current_element_size = ie_formats_sizes[request->ied.formats[j]];
+		total_element_size += current_element_size;
+		for(s32 semantic_index = 0; current_element_size > 0; semantic_index++)
+		{
+			ie_count++;
+			D3D11_INPUT_ELEMENT_DESC* current_ied = ARENA_PUSH_STRUCT(temp_arena, D3D11_INPUT_ELEMENT_DESC);
+			current_ied->SemanticName = request->ied.names[j];
+			// this is in case the element is bigger than a float4 (a matrix for example)
+			current_ied->SemanticIndex = semantic_index;
+			
+			current_ied->Format = ie_formats_list[request->ied.formats[j]];
+
+			u32 ie_slot = 0;
+			if(request->ied.next_slot_beginning_index && j >= request->ied.next_slot_beginning_index)
+			{
+				ie_slot = 1;
+			}
+			
+			#if USE_APPEND_ALIGNED_ELEMENT
+				current_ied->AlignedByteOffset = D3D11_APPEND_ALIGNED_ELEMENT;
+			#else
+				current_ied->AlignedByteOffset = aligned_byte_offsets[ie_slot];
+				aligned_byte_offsets[ie_slot] += MIN(MAX_IE_SIZE,current_element_size); 
+			#endif
+			current_element_size -= MAX_IE_SIZE;
+			
+			current_ied->InputSlot = ie_slot;// this is for using secondary buffers (like an instance buffer)
+			current_ied->InputSlotClass = (D3D11_INPUT_CLASSIFICATION)ie_slot; // 0 PER_VERTEX_DATA vs 1 PER_INSTANCE_DATA
+			current_ied->InstanceDataStepRate = ie_slot; // the amount of instances to draw using the PER_INSTANCE data
+		}
+	}
+	UNTIL(e, ie_count)
+	{
+		ied[e];
+		ASSERT(true);
+	}
+	HRESULT hr = dx->device->CreateInputLayout(
+		ied, ie_count, 
+		compiled_vs.data, compiled_vs.size, 
+		&vs->input_layout
+	); 
+	ASSERTHR(hr);	
+}

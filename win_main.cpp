@@ -482,6 +482,12 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				Vertex_shader* vs; PUSH_BACK(vertex_shaders_list, assets_arena, vs);
 				dx11_create_vs(dx, compiled_vs, &vs->shader);
 
+				vs->filename.length = request->filename.length;
+				vs->filename.text = (char*)arena_push_data(permanent_arena, request->filename.text, request->filename.length);
+				arena_push_size(permanent_arena,1);
+				vs->last_write_time = win_get_last_write_time(vs->filename.text);
+				
+
 				s32 MAX_IE_SIZE = sizeof(f32)*4;
 				
 				u32 ie_count = 0;
@@ -1057,6 +1063,22 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 
 					ASSERT(apps[app_i].update && apps[app_i].render);
 				}
+			}
+		}
+
+		FOREACH(Vertex_shader, current_vs, vertex_shaders_list)
+		{
+			FILETIME vs_last_write_time = win_get_last_write_time(current_vs->filename.text);
+			if(CompareFileTime(&vs_last_write_time, &current_vs->last_write_time) != 0)
+			{
+				current_vs->shader->Release();
+				String temp_filename = concat_strings(current_vs->filename, string(".temp"), temp_arena);
+				win_copy_file(current_vs->filename, temp_filename);
+				File_data compiled_vs = win_read_file(temp_filename, temp_arena);
+				win_delete_file(temp_filename);
+				
+				dx11_create_vs(dx, compiled_vs, &current_vs->shader);				
+				current_vs->last_write_time = win_get_last_write_time(current_vs->filename.text);
 			}
 		}
 		#endif
