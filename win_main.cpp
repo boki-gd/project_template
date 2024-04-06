@@ -1080,7 +1080,6 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				String temp_filename = concat_strings(current_vs->filename, string(".temp"), temp_arena);
 				win_copy_file(current_vs->filename, temp_filename);
 				File_data compiled_vs = win_read_file(temp_filename, temp_arena);
-				win_delete_file(temp_filename);
 				
 				dx11_create_vs(dx, compiled_vs, &current_vs->shader);				
 				current_vs->last_write_time = win_get_last_write_time(current_vs->filename.text);
@@ -1095,7 +1094,6 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				String temp_filename = concat_strings(current_ps->filename, string(".temp"), temp_arena);
 				win_copy_file(current_ps->filename, temp_filename);
 				File_data compiled_ps = win_read_file(temp_filename, temp_arena);
-				win_delete_file(temp_filename);
 				
 				dx11_create_ps(dx, compiled_ps, &current_ps->shader);				
 				current_ps->last_write_time = win_get_last_write_time(current_ps->filename.text);
@@ -2139,10 +2137,14 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 	FOREACH(Vertex_shader, current_vs, vertex_shaders_list){
 		current_vs->shader->Release();
 		current_vs->input_layout->Release();
+		String temp_filename = concat_strings(current_vs->filename, string(".temp"), temp_arena);
+		win_delete_file(temp_filename);
 	}
 
 	FOREACH(Pixel_shader, current_ps, pixel_shaders_list){
 		(current_ps->shader)->Release();
+		String temp_filename = concat_strings(current_ps->filename, string(".temp"), temp_arena);
+		win_delete_file(temp_filename);
 	}
 
 	FOREACH(Dx11_blend_state*, current_blend, blend_states_list){

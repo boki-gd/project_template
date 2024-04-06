@@ -785,7 +785,8 @@ line_vs_rect(V3 line_0, V3 line_v, V3 p1, V3 p2, V3 p3, V3 p4, V3* intersection_
 
 // returns the tvalue that the line needs to advance to intersect with the box
 internal float 
-line_vs_aabb(V3 line_p, V3 line_d, V3 box_min, V3 box_max) {
+line_vs_aabb(V3 line_p, V3 line_d, V3 box_min, V3 box_max) 
+{
     float temp_t1 = (box_min.x - line_p.x) / line_d.x;
     float temp_t2 = (box_max.x - line_p.x) / line_d.x;
 
