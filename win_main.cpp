@@ -1709,12 +1709,23 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 					LIST_GET(textures_list, request->modifiable_texture.uid, texture_view);
 					(*texture_view)->GetResource(&modify_texture);
 					// dx11_modify_resource(dx, modify_texture, request->modifiable_texture.new_data, request->modifiable_texture.size);
-					D3D11_BOX texbox = {0,0,0, 64*8, 64*4, 64*8};
+					D3D11_BOX texbox = {
+						request->modifiable_texture.box.left,
+						request->modifiable_texture.box.top,
+						request->modifiable_texture.box.front, 
+						request->modifiable_texture.box.right, 
+						request->modifiable_texture.box.bottom,
+						request->modifiable_texture.box.back
+					};
+
 					dx->context->UpdateSubresource(modify_texture, 0, 
 						&texbox, 
 						request->modifiable_texture.new_data, 
+						// request->modifiable_texture.source_row_pitch,
+						// request->modifiable_texture.source_depth_pitch,
 						64*8*sizeof(u32),
-						64*8*64*4*sizeof(u32));
+						64*8*64*4*sizeof(u32)
+						);
 					modify_texture->Release();
 				}
 				if(request->type_flags & REQUEST_FLAG_SET_SHADER_RESOURCE_FROM_TEXTURE)

@@ -268,13 +268,17 @@ v2_project_a_on_b(V2 a, V2 b)
     return dot*normalized_b;
 }
 
-
 struct Int3
 {
     int x;
     int y;
     int z;
 };
+internal Int3
+operator +(Int3 a, Int3 b)
+{
+    return {a.x + b.x, a.y + b.y, a.z + b.z};
+}
 
 internal Int3
 int3(int x, int y, int z)
@@ -285,6 +289,27 @@ internal bool
 operator ==(Int3 a, Int3 b)
 {
     return a.x == b.x && a.y == b.y && a.z == b.z;
+}
+
+struct uInt3
+{
+    u32 x,y,z;
+};
+internal uInt3
+uint3(u32 x, u32 y, u32 z)
+{
+    return {x,y,z};
+}
+internal uInt3
+int3_to_uint3(Int3 i)
+{
+    return {(u32)i.x,(u32)i.y,(u32)i.z};
+}
+
+internal uInt3
+operator +(uInt3 a, uInt3 b)
+{
+    return {a.x + b.x, a.y + b.y, a.z + b.z};
 }
 
 union V3
@@ -1047,4 +1072,23 @@ sample_3d_perlin_noise(float* noisemap,
     }
 
     return cumulative_value/cumulative_amplitude;
+}
+
+
+union Box
+{
+    struct 
+    {
+        u32 left, top, front, right, bottom, back;
+    };
+    struct 
+    {
+        uInt3 min, max;
+    };
+    
+};
+internal Box
+box(u32 l, u32 t, u32 f, u32 r, u32 bt, u32 bk)
+{
+    return {l,t,f,r,bt,bk};
 }

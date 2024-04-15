@@ -484,6 +484,7 @@ struct Renderer_request{
 			u16 uid;
 			void* new_data;
 			u32 size;
+			Box box;
 		}modifiable_texture;
 		
 	};
