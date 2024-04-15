@@ -385,7 +385,6 @@ enum RENDERER_REQUEST_TYPE_FLAGS
 {
 	REQUEST_FLAG_RENDER_OBJECT = 0b1,
 	REQUEST_FLAG_RENDER_INSTANCES = 0b10,
-	REQUEST_FLAG_POSTPROCESSING = 0b100,
 
 	REQUEST_FLAG_CHANGE_VIEWPORT_SIZE = 0b1000,
 	REQUEST_FLAG_MODIFY_RENDERER_VARIABLE = 0b10000,
@@ -402,6 +401,8 @@ enum RENDERER_REQUEST_TYPE_FLAGS
 	REQUEST_FLAG_SET_RASTERIZER_STATE = 0b1000000000000000,
 	REQUEST_FLAG_SET_SAMPLER = 0b10000000000000000,
 	REQUEST_FLAG_CLEAR_RTV = 0b100000000000000000,
+	
+	// REQUEST_FLAG_POSTPROCESSING = 0b100,
 };
 
 struct Renderer_request{
@@ -973,3 +974,10 @@ holding_key(App_memory* memory, Input_keyboard_indices key)
 	return false;
 }
 
+internal u32
+get_pushed_instances_count(Memory_arena* temp_arena, Renderer_request* request)
+{
+	u32 result = (u32)((temp_arena->data+temp_arena->used - (u8*)request->instancing_data.instances)/sizeof(Instance_data));
+	ASSERT(result < 0xffff);
+	return result;
+}
