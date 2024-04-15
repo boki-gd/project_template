@@ -1442,9 +1442,9 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 
 						}
 
-						b32 AltKeyWasDown = ((msg.lParam & (1 << 29)));
-						if ((vkcode == VK_F4) && AltKeyWasDown)
-							memory.close_app = true;
+						// b32 AltKeyWasDown = ((msg.lParam & (1 << 29)));
+						// if ((vkcode == VK_F4) && AltKeyWasDown)
+						// 	memory.close_app = true;
 					}
 					TranslateMessage(&msg);
 					
@@ -1965,18 +1965,18 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 
 					dx->context->DrawIndexedInstanced(vertices_mesh->indices_count, request->instancing_data.instances_count, 0, 0, 0);
 				}
-				else if(request->type_flags & REQUEST_FLAG_POSTPROCESSING) // POST PROCESSING EFFECTS
-				{					
-					// dx->context->OMSetRenderTargets(1, &dx->render_target_views_list[RTV_SCREEN], 0); 
-					// dx11_bind_render_target_view(dx, &dx->render_[0], aux_depth_stencil->view);
+				// else if(request->type_flags & REQUEST_FLAG_POSTPROCESSING) // POST PROCESSING EFFECTS
+				// {					
+				// 	// dx->context->OMSetRenderTargets(1, &dx->render_target_views_list[RTV_SCREEN], 0); 
+				// 	// dx11_bind_render_target_view(dx, &dx->render_[0], aux_depth_stencil->view);
 
-					dx->context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
+				// 	dx->context->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLESTRIP);
 
-					Dx_mesh* object_mesh; LIST_GET(meshes_list, request->mesh_uid, object_mesh);
-					dx11_bind_vertex_buffer(dx, object_mesh->vertex_buffer, object_mesh->vertex_size);
+				// 	Dx_mesh* object_mesh; LIST_GET(meshes_list, request->mesh_uid, object_mesh);
+				// 	dx11_bind_vertex_buffer(dx, object_mesh->vertex_buffer, object_mesh->vertex_size);
 
-					dx->context->Draw(4, 0);
-				}
+				// 	dx->context->Draw(4, 0);
+				// }
 			}
 
 			// PRESENT RENDERING

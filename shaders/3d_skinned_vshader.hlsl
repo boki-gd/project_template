@@ -23,7 +23,7 @@ VS_OUTPUT_DEFAULT vs( VS_INPUT_DEFAULT input )
 
 	float4 vertex_world_pos = mul(object_transform, total_local_pos );
 	result.vertex_world_pos = vertex_world_pos.xyz;
-	result.pixel_pos = mul( projection_view_matrix, vertex_world_pos);
+	result.pixel_pos = mul( projection_matrix, mul(world_view_matrix, vertex_world_pos));
 	// a little funny deformation
 	// vertex_world_pos.y += 5*sin(vertex_world_pos.x*10)/10;
 

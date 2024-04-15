@@ -101,7 +101,7 @@ float4 ps( VS_OUTPUT_DEFAULT input, uint tid : SV_PrimitiveID ) : SV_TARGET
 
    float4 original_color = color_texture.Sample(sampler0, input.texcoord);
 
-   float map_count = 10;
+   float map_count = 255;
    float4 mapped_color = float4(
       ceil(original_color.r*map_count)/map_count, 
       ceil(original_color.g*map_count)/map_count, 
@@ -130,7 +130,7 @@ float4 ps( VS_OUTPUT_DEFAULT input, uint tid : SV_PrimitiveID ) : SV_TARGET
 
    // result = color_texture.Sample( sampler0, input.texcoord);
    // result = float4(ease_in_circular(ease_in_circular(depth_texture.Sample( sampler0, input.texcoord ).w)), 0,0,1);
-
-   result = mapped_color;
+   float a = depth_value.w;
+   // result = float4(a,a,a,1);
    return result;
 }

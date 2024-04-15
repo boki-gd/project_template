@@ -20,20 +20,34 @@ PS_OUTPUT_DEFAULT ps( VS_OUTPUT_DEFAULT input, uint tid : SV_PrimitiveID)
 
 	float3 N = normalize(input.normal);
 	//TODO: VERTICES STILL HAVE NO NORMALS SO THIS WILL ALWAYS BE 0
-	result.color.rgb *=   ( (N.x+N.y+N.z+3)/3 );
+	// i don't know what this does
 
+	float3 light_direction = normalize(float3(-1,-1, 1));
+	// float light = saturate( (N.x+N.y+N.z) );
+	float light = saturate((2*(-dot(N, light_direction))));
+
+	// FRESNEL
 	float3 camera_to_vertex = normalize(input.vertex_world_pos - input.camera_world_pos.xyz);
 	// float3 camera_vector = lerp(input.camera_world_pos.xyz, camera_to_vertex, input.camera_world_pos.w);
 	float3 camera_vector = camera_to_vertex;
 
-	float fresnel = 1.5 + dot(camera_vector, N);
+	// this works better with a more realistic shading
+	float fresnel = saturate(1+(2.0f*(dot(camera_vector, N)))); 
+	// result.color.rgb *= fresnel;
 
-	result.color.rgb *= fresnel;
+	// CLIP MASK
 
-	//TODO: get this value from a constant buffer
+	//TODO: get this value from a constant buffer or from the material of the vertices
 	float FRESNEL_MULTIPLIER = 1.0;
 	float clip_mask = FRESNEL_MULTIPLIER*(0.5f+(1.0f-saturate(fresnel)));
-	result.color.rgb *= clip_mask;
+	// result.color.rgb *= clip_mask;
+
+	// FINAL COLOR 
+	float shadow = light-.1f*fresnel;
+	
+   float map_count = 2;// this value indicates how many light values, and how many shadow values there will be
+   float mapped_light = float(ceil(shadow*map_count)/(map_count));
+	result.color = saturate(result.color + (mapped_light*float4( .1f, .1f, .2f, 0)) - ((1-mapped_light)*(float4(1,1,1,0)-float4( .7f, .5f, .5f, 0))));
 	
 
 	float depth_value = 1-(length(input.vertex_world_pos-input.camera_world_pos.xyz)/100);
@@ -44,11 +58,12 @@ PS_OUTPUT_DEFAULT ps( VS_OUTPUT_DEFAULT input, uint tid : SV_PrimitiveID)
 	float3 normal_color = float3(dot(camera_right_vector, N), dot(camera_up_vector, N), -dot(camera_to_vertex, N));
 
 	// FROM THE APP LAYER I CAN SET DEPTH WRITING AND THAT CHANGES THE W VALUE OF THE CAMERA POS
-	float eased_depth_value = ease_in_circular(depth_value);
+	float eased_depth_value = (ease_in_circular(depth_value));
 	
 	//TODO: WHEN DEPTH IS NOT 1, if THE blend_state is active it APPLIES THE ALPHA TO THE RGB VALUES 
 	// SO THEY WILL NOT BE EXACTLY THE SAME WHEN READ FROM THE POST PROCESSING SHADER
 	//TODO: make 2 different textures for normal and depth
+	
 	result.depth = input.camera_world_pos.w * float4(normal_color, eased_depth_value);
 	// result.depth = float4(normal_color, 1);
 

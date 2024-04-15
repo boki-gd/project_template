@@ -286,29 +286,29 @@ import_3d_asset(Memory_arena* arena, File_data file)
    return result;
 }
 
-internal Data_stream
+internal File_data
 export_3d_asset(Memory_arena* temp_arena, Exporting_3d_asset* asset)
 {
-   Data_stream output = {0};
-   output.data = temp_arena->data+temp_arena->used;
-   output.size = temp_arena->size-temp_arena->used;
-   Data_stream* result = &output;
+   File_data result = {0};
+   result.data = temp_arena->data+temp_arena->used;
+   u32 initial_used = temp_arena->used;
+   Memory_arena* export_arena = temp_arena;
 
-   arena_push_size(result, 8); // 8 bytes of padding
+   arena_push_size(export_arena, 8); // 8 bytes of padding
 
-   *ARENA_PUSH_STRUCT(result, u16) = asset->joints_count;
-   *ARENA_PUSH_STRUCT(result, u16) = asset->bones_count;
-   *ARENA_PUSH_STRUCT(result, u16) = (u16)LIST_SIZE(asset->meshes_list);
-   *ARENA_PUSH_STRUCT(result, u16) = (u16)LIST_SIZE(asset->animations_list);
+   *ARENA_PUSH_STRUCT(export_arena, u16) = asset->joints_count;
+   *ARENA_PUSH_STRUCT(export_arena, u16) = asset->bones_count;
+   *ARENA_PUSH_STRUCT(export_arena, u16) = (u16)LIST_SIZE(asset->meshes_list);
+   *ARENA_PUSH_STRUCT(export_arena, u16) = (u16)LIST_SIZE(asset->animations_list);
 
    Block_entry* current_entry;
    
    if(asset->bones_count)
    {
-      current_entry = ARENA_PUSH_STRUCT(result, Block_entry);
+      current_entry = ARENA_PUSH_STRUCT(export_arena, Block_entry);
       current_entry->block_type = BT3D_JOINT_POSITIONS;
 
-      V3* joint_positions = ARENA_PUSH_STRUCTS(result, V3, asset->joints_count);
+      V3* joint_positions = ARENA_PUSH_STRUCTS(export_arena, V3, asset->joints_count);
       
       UNTIL(j, asset->joints_count)
       {
@@ -316,10 +316,10 @@ export_3d_asset(Memory_arena* temp_arena, Exporting_3d_asset* asset)
       }
       
       
-      current_entry = ARENA_PUSH_STRUCT(result, Block_entry);
+      current_entry = ARENA_PUSH_STRUCT(export_arena, Block_entry);
       current_entry->block_type = BT3D_BONE_JOINTS_INDICES;
 
-      Bone_joint_indices* bone_joints = ARENA_PUSH_STRUCTS(result, Bone_joint_indices, asset->bones_count);
+      Bone_joint_indices* bone_joints = ARENA_PUSH_STRUCTS(export_arena, Bone_joint_indices, asset->bones_count);
       
       UNTIL(b, asset->bones_count)
       {
@@ -329,22 +329,22 @@ export_3d_asset(Memory_arena* temp_arena, Exporting_3d_asset* asset)
 
       FOREACH(Imported_animation, current_anim, asset->animations_list)
       {
-         current_entry = ARENA_PUSH_STRUCT(result, Block_entry);
+         current_entry = ARENA_PUSH_STRUCT(export_arena, Block_entry);
          current_entry->block_type = BT3D_ANIMATIONS;
 
-         *ARENA_PUSH_STRUCT(result, u32) = current_anim->keyframes_count;
-         *ARENA_PUSH_STRUCT(result, f32) = current_anim->length;
+         *ARENA_PUSH_STRUCT(export_arena, u32) = current_anim->keyframes_count;
+         *ARENA_PUSH_STRUCT(export_arena, f32) = current_anim->length;
 
 
-         current_entry = ARENA_PUSH_STRUCT(result, Block_entry);
+         current_entry = ARENA_PUSH_STRUCT(export_arena, Block_entry);
          current_entry->anim_block_type = ANIM_ET_KEYFRAME_TIMES;
 
-         f32* keyframe_times = ARENA_PUSH_STRUCTS(result, f32, current_anim->keyframes_count);
+         f32* keyframe_times = ARENA_PUSH_STRUCTS(export_arena, f32, current_anim->keyframes_count);
 
-         current_entry = ARENA_PUSH_STRUCT(result, Block_entry);
+         current_entry = ARENA_PUSH_STRUCT(export_arena, Block_entry);
          current_entry->anim_block_type = ANIM_ET_KEYFRAME_BONE_POSES;
          
-         Bone* keyframe_bone_poses = ARENA_PUSH_STRUCTS(result, Bone, current_anim->keyframes_count);
+         Bone* keyframe_bone_poses = ARENA_PUSH_STRUCTS(export_arena, Bone, current_anim->keyframes_count);
 
          UNTIL(k, current_anim->keyframes_count)
          {
@@ -352,60 +352,60 @@ export_3d_asset(Memory_arena* temp_arena, Exporting_3d_asset* asset)
             keyframe_bone_poses[k] = current_anim->keyframe_bone_poses[k];
          }
 
-         current_entry = ARENA_PUSH_STRUCT(result, Block_entry);
+         current_entry = ARENA_PUSH_STRUCT(export_arena, Block_entry);
          current_entry->anim_block_type = ANIM_ET_BONES_KEYFRAMES_COUNT;
 
-         u16* bones_keyframes_count = ARENA_PUSH_STRUCTS(result, u16, current_anim->bones_count);
+         u16* bones_keyframes_count = ARENA_PUSH_STRUCTS(export_arena, u16, current_anim->bones_count);
          UNTIL(b, current_anim->bones_count)
          {
             bones_keyframes_count[b] = current_anim->bones_keyframes_count[b];
          }
          
-         current_entry = ARENA_PUSH_STRUCT(result, Block_entry);
+         current_entry = ARENA_PUSH_STRUCT(export_arena, Block_entry);
          current_entry->anim_block_type = ANIM_ET_LAST_ENTRY;
       }
    }
 
    FOREACH(Imported_mesh, current_mesh, asset->meshes_list)
    {
-      current_entry = ARENA_PUSH_STRUCT(result, Block_entry);
+      current_entry = ARENA_PUSH_STRUCT(export_arena, Block_entry);
       current_entry->block_type = BT3D_MESH;
 
-      *ARENA_PUSH_STRUCT(result, u32) = current_mesh->vertex_count;
-      *ARENA_PUSH_STRUCT(result, u32) = current_mesh->indices_count;
-      *ARENA_PUSH_STRUCT(result, u32) = current_mesh->topology_uid;
+      *ARENA_PUSH_STRUCT(export_arena, u32) = current_mesh->vertex_count;
+      *ARENA_PUSH_STRUCT(export_arena, u32) = current_mesh->indices_count;
+      *ARENA_PUSH_STRUCT(export_arena, u32) = current_mesh->topology_uid;
       
       if(current_mesh->vertex_count)
       {
-         current_entry = ARENA_PUSH_STRUCT(result, Block_entry);
+         current_entry = ARENA_PUSH_STRUCT(export_arena, Block_entry);
          current_entry->mesh_block_type = MESH_ET_VPOSITIONS;
 
-         V3* vpositions = ARENA_PUSH_STRUCTS(result, V3, current_mesh->vertex_count);
+         V3* vpositions = ARENA_PUSH_STRUCTS(export_arena, V3, current_mesh->vertex_count);
          
-         current_entry = ARENA_PUSH_STRUCT(result, Block_entry);
+         current_entry = ARENA_PUSH_STRUCT(export_arena, Block_entry);
          current_entry->mesh_block_type = MESH_ET_VTEXCOORDS;
 
-         V2* vtexcoords = ARENA_PUSH_STRUCTS(result, V2, current_mesh->vertex_count);
+         V2* vtexcoords = ARENA_PUSH_STRUCTS(export_arena, V2, current_mesh->vertex_count);
          
-         current_entry = ARENA_PUSH_STRUCT(result, Block_entry);
+         current_entry = ARENA_PUSH_STRUCT(export_arena, Block_entry);
          current_entry->mesh_block_type = MESH_ET_VNORMALS;
 
-         V3* vnormals = ARENA_PUSH_STRUCTS(result, V3, current_mesh->vertex_count);
+         V3* vnormals = ARENA_PUSH_STRUCTS(export_arena, V3, current_mesh->vertex_count);
          
-         current_entry = ARENA_PUSH_STRUCT(result, Block_entry);
+         current_entry = ARENA_PUSH_STRUCT(export_arena, Block_entry);
          current_entry->mesh_block_type = MESH_ET_VCOLORS;
 
-         Color* vcolors = ARENA_PUSH_STRUCTS(result, Color, current_mesh->vertex_count);
+         Color* vcolors = ARENA_PUSH_STRUCTS(export_arena, Color, current_mesh->vertex_count);
          
-         current_entry = ARENA_PUSH_STRUCT(result, Block_entry);
+         current_entry = ARENA_PUSH_STRUCT(export_arena, Block_entry);
          current_entry->mesh_block_type = MESH_ET_VWEIGHT_INDICES;
 
-         Indices_triad16* vweight_indices = ARENA_PUSH_STRUCTS(result, Indices_triad16, current_mesh->vertex_count);
+         Indices_triad16* vweight_indices = ARENA_PUSH_STRUCTS(export_arena, Indices_triad16, current_mesh->vertex_count);
          
-         current_entry = ARENA_PUSH_STRUCT(result, Block_entry);
+         current_entry = ARENA_PUSH_STRUCT(export_arena, Block_entry);
          current_entry->mesh_block_type = MESH_ET_VWEIGHT_VALUES;
 
-         V3* vweight_values = ARENA_PUSH_STRUCTS(result, V3, current_mesh->vertex_count);
+         V3* vweight_values = ARENA_PUSH_STRUCTS(export_arena, V3, current_mesh->vertex_count);
 
          copy_mem(current_mesh->vertices.positions, vpositions, current_mesh->vertex_count*sizeof(vpositions[0]));
          copy_mem(current_mesh->vertices.texcoords, vtexcoords, current_mesh->vertex_count*sizeof(vtexcoords[0]));
@@ -418,22 +418,22 @@ export_3d_asset(Memory_arena* temp_arena, Exporting_3d_asset* asset)
 
       if(current_mesh->indices_count)
       {
-         current_entry = ARENA_PUSH_STRUCT(result, Block_entry);
+         current_entry = ARENA_PUSH_STRUCT(export_arena, Block_entry);
          current_entry->mesh_block_type = MESH_ET_INDICES;
 
-         u16* indices = ARENA_PUSH_STRUCTS(result, u16, current_mesh->indices_count);
+         u16* indices = ARENA_PUSH_STRUCTS(export_arena, u16, current_mesh->indices_count);
 
          copy_mem(current_mesh->indices, indices, current_mesh->indices_count*sizeof(indices[0]));
       }
       
-      current_entry = ARENA_PUSH_STRUCT(result, Block_entry);
+      current_entry = ARENA_PUSH_STRUCT(export_arena, Block_entry);
       current_entry->mesh_block_type = MESH_ET_LAST_ENTRY;
    }
 
    
-   current_entry = ARENA_PUSH_STRUCT(result, Block_entry);
+   current_entry = ARENA_PUSH_STRUCT(export_arena, Block_entry);
    current_entry->block_type = BT3D_LAST_ENTRY;
 
-   temp_arena->used += output.used;
-   return output;
+   result.size = export_arena->used - initial_used;
+   return result;
 }
