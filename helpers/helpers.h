@@ -413,10 +413,7 @@ struct Selection_indices
 	u16 hot;
 	
 	u16 pressed; // cursor primary button
-	union{
-		u16 clicked;
-		u16 selected;
-	};
+	u16 clicked;
 
 	u16 pressed2; // cursor secondary button
 	u16 clicked2;

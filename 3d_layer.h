@@ -202,58 +202,6 @@ multiply_quaternions(Quaternion q1, Quaternion q2)
 }
 
 internal Quaternion
-lerp_quaternions(Quaternion a, Quaternion b, f32 t)
-{
-   Quaternion result;
-   float dot = (a.w * b.w) + (a.x * b.x) + (a.y * b.y) + (a.z * b.z);
-   float t_inverse = 1.0f - t;
-   if (dot < 0) {
-      result.w = (t_inverse * a.w) + (t * -b.w);
-      result.x = (t_inverse * a.x) + (t * -b.x);
-      result.y = (t_inverse * a.y) + (t * -b.y);
-      result.z = (t_inverse * a.z) + (t * -b.z);
-   } else {
-      result.w = (t_inverse * a.w) + (t * b.w);
-      result.x = (t_inverse * a.x) + (t * b.x);
-      result.y = (t_inverse * a.y) + (t * b.y);
-      result.z = (t_inverse * a.z) + (t * b.z);
-   }
-   return v4_normalize(result);
-}
-
-// this function is probably insanely wrong, use lerp for now instead
-internal Quaternion
-slerp_quaternions(Quaternion a, Quaternion b, f32 t)
-{
-   Quaternion result;
-   float dot = (a.w * b.w) + (a.x * b.x) + (a.y * b.y) + (a.z * b.z);
-
-   ASSERT(-1.0f < dot && dot < 1.0f);
-   
-   if (dot < 0.0) {
-      b.w = -b.w;
-      b.x = -b.x;
-      b.y = -b.y;
-      b.z = -b.z;
-   }
-
-   // this two lines are super dumb chatgpt
-   f32 theta = ACOSF(dot);
-   f32 sin_theta = SINF(theta);
-   // why the f is there an alpha here
-   f32 alpha = SINF((1-t)*theta / sin_theta);
-   f32 beta = SINF(t*theta) / sin_theta;
-
-   
-   result.w = b.w * alpha + b.w * beta;
-   result.x = b.x * alpha + b.x * beta;
-   result.y = b.y * alpha + b.y * beta;
-   result.z = b.z * alpha + b.z * beta;
-
-   return result;
-}
-
-internal Quaternion
 quaternion_transform_locally(Quaternion current_q, Quaternion transform_q)
 {
    
@@ -272,6 +220,86 @@ quaternion_invert(Quaternion q)
 {
    return {-q.x,-q.y,-q.z,q.w};
 }
+internal Quaternion
+lerp_quaternions(Quaternion a, Quaternion b, f32 t)
+{
+   Quaternion result;
+   float dot = v4_dot(a,b);
+   float t_inverse = 1.0f - t;
+   if (dot < 0) {
+      result.w = (t_inverse * a.w) + (t * -b.w);
+      result.x = (t_inverse * a.x) + (t * -b.x);
+      result.y = (t_inverse * a.y) + (t * -b.y);
+      result.z = (t_inverse * a.z) + (t * -b.z);
+   } else {
+      result.w = (t_inverse * a.w) + (t * b.w);
+      result.x = (t_inverse * a.x) + (t * b.x);
+      result.y = (t_inverse * a.y) + (t * b.y);
+      result.z = (t_inverse * a.z) + (t * b.z);
+   }
+   return v4_normalize(result);
+}
+
+// this function is probably insanely wrong, use lerp for now instead
+// internal Quaternion
+// slerp_quaternions(Quaternion a, Quaternion b, f32 t)
+// {
+//    Quaternion result;
+//    float dot = (a.w * b.w) + (a.x * b.x) + (a.y * b.y) + (a.z * b.z);
+
+//    ASSERT(-1.0f < dot && dot < 1.0f);
+   
+//    if (dot < 0.0) {
+//       b.w = -b.w;
+//       b.x = -b.x;
+//       b.y = -b.y;
+//       b.z = -b.z;
+//    }
+
+//    // this two lines are super dumb chatgpt
+//    f32 theta = ACOSF(dot);
+//    f32 sin_theta = SINF(theta);
+//    // why the f is there an alpha here
+//    f32 alpha = SINF((1-t)*theta / sin_theta);
+//    f32 beta = SINF(t*theta) / sin_theta;
+
+   
+//    result.w = b.w * alpha + b.w * beta;
+//    result.x = b.x * alpha + b.x * beta;
+//    result.y = b.y * alpha + b.y * beta;
+//    result.z = b.z * alpha + b.z * beta;
+
+//    return result;
+// }
+internal Quaternion
+slerp_quaternions(Quaternion q1, Quaternion q2, f32 t)
+{   
+   // Calculate dot product
+   f32 dot = v4_dot(q1, q2);
+   
+   // Determine the direction of interpolation
+   if(dot < 0.0f)
+   {
+      q2 = quaternion_invert(q2);
+      dot = -dot;
+   }
+
+   // Ensure dot product is within bounds
+   dot = MIN(1.0f, MAX(-1.0f, dot));
+   
+   // Calculate angle between quaternions
+   f32 theta = acosf(dot);
+   
+   // Interpolate
+   
+   Quaternion interpolated = v4_addition((sinf((1 - t) * theta) / sinf(theta)) * q1, (sinf(t * theta) / sinf(theta)) * q2);
+   
+   // Normalize result
+   interpolated  = v4_normalize(interpolated);
+   
+   return interpolated;
+}
+
 internal V4
 v4_apply_quaternion(V4 v, Quaternion q)
 {

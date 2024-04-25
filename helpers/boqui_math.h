@@ -484,6 +484,25 @@ v4_normalize(V4 v)
     return {v.x/vlength, v.y/vlength, v.z/vlength, v.w/vlength};
 }
 internal V4
+v4_addition(V4 a, V4 b)
+{
+    return {a.x+b.x, a.y+b.y, a.z+b.z, a.w+b.w};
+}
+
+internal f32
+v4_dot(V4 v1, V4 v2)
+{
+    return (v1.x*v2.x) + (v1.y*v2.y) + (v1.z*v2.z) + (v1.w*v2.w);
+}
+
+internal V4
+operator *(f32 a, V4 v)
+{
+    return {a*v.x, a*v.y, a*v.z, a*v.w};
+}
+
+
+internal V4
 v3_to_v4(V3 v)
 {
    return {v.x,v.y,v.z,0};
@@ -1091,4 +1110,13 @@ internal Box
 box(u32 l, u32 t, u32 f, u32 r, u32 bt, u32 bk)
 {
     return {l,t,f,r,bt,bk};
+}
+
+internal float 
+sdf_capsule( V3 p, V3 a, V3 b, float r )
+{
+  V3 pa = p - a; 
+  V3 ba = b - a;
+  float h = CLAMP(0.0f, v3_dot(pa,ba)/v3_dot(ba,ba), 1.0f);
+  return v3_magnitude( pa - (h*ba) ) - r;
 }
