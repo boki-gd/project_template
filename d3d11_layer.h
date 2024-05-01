@@ -317,11 +317,6 @@ dx11_create_rasterizer_state(D3D* dx, Dx11_rasterizer_state** result, D3D11_FILL
 internal bool
 dx11_create_blend_state(D3D* dx, Dx11_blend_state** result, bool enable_alpha_blending)
 {
-	b32 is_debug = DEBUGMODE;
-	if(!is_debug && !enable_alpha_blending)
-	{
-		return false;
-	}
 	HRESULT hr;
 	D3D11_RENDER_TARGET_BLEND_DESC d  = {0};
 	d.BlendEnable = enable_alpha_blending;

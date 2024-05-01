@@ -1447,7 +1447,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 						// 	memory.close_app = true;
 					}
 					TranslateMessage(&msg);
-					
+					DispatchMessage(&msg);
 				}break;
 				case WM_CHAR:
 				{
