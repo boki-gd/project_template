@@ -482,9 +482,12 @@ struct Renderer_request{
 		}clear_rtv;
 		struct 
 		{
-			u16 uid;
+			u16 source_tex_uid;
+			// this are in bytes
+			u32 source_row_pitch; 
+			u32 source_depth_pitch;
+
 			void* new_data;
-			u32 size;
 			Box box;
 		}modifiable_texture;
 		
@@ -512,7 +515,7 @@ enum Asset_request_type{
 	SOUND_FROM_FILE_REQUEST,
 
 	TEX_FROM_SURFACE_REQUEST,
-	CREATE_DYNAMIC_TEXTURE3D,
+	CREATE_DYNAMIC_TEXTURE,
 	MESH_FROM_PRIMITIVES_REQUEST,
 	CREATE_CONSTANT_BUFFER_REQUEST,
 	CREATE_DYNAMIC_MESH,
@@ -530,22 +533,27 @@ struct Input_element_desc
 	u32 next_slot_beginning_index; // this is for instancing
 };
 
-struct Asset_request{
+struct Asset_request
+{
 	//TODO: clearly create each struct for each type of request 
 	// cuz right now i can't tell which properties each request uses
 	Asset_request_type type;
-	union{
+	union
+	{
 		u16* p_uid;
 		u32 sound_uid;
 		u16* font_uid;
 	};
-	union{
-		struct { // this is for vertex shader
+	union
+	{
+		struct 
+		{ // this is for vertex shader
 			String filename;
 			Input_element_desc ied; // input_element_desc
 			f32 font_lines_height;
 		};
-		struct{
+		struct
+		{
 			Renderer_variable_register_index register_index;
 			u16 size;// constant buffer can't be bigger than 65536 (actually it can but it's complicated)
 		}constant_buffer;
@@ -554,10 +562,7 @@ struct Asset_request{
 		
 		Surface tex_surface;
 
-		struct{
-			Int3 sizes;
-			u16* texview_uid;
-		}tex3d;
+		Int3 dynamic_tex_sizes;
 		
 		//TODO: THIS ARE NOT ASSETS BUT I DON'T KNOW WHERE TO PUT'EM
 		b32 enable_alpha_blending;

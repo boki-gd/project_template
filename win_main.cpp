@@ -2,6 +2,7 @@
 // #define COBJMACROS
 #include <windows.h>
 #include <dsound.h>
+#include "../code/win_layer.cpp"
 #include "win_functions.h"
 
 #include "d3d11_layer.h"
@@ -788,25 +789,61 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				texture2d->Release();
 			}break;
 
-			case CREATE_DYNAMIC_TEXTURE3D:{
-				D3D11_TEXTURE3D_DESC tex3d_desc = {0};
-				tex3d_desc.Width = request->tex3d.sizes.x;
-				tex3d_desc.Height = request->tex3d.sizes.y;
-				tex3d_desc.Depth = request->tex3d.sizes.z;
-				tex3d_desc.MipLevels = 1;
-				tex3d_desc.Format = DXGI_FORMAT_R32_UINT;
-				tex3d_desc.Usage = D3D11_USAGE_DEFAULT;
-				tex3d_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
-				tex3d_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+			case CREATE_DYNAMIC_TEXTURE:{
+				if(request->dynamic_tex_sizes.x && !request->dynamic_tex_sizes.y && !request->dynamic_tex_sizes.z)
+				{
 
-				ID3D11Texture3D* texture3d; 
-				hr = dx->device->CreateTexture3D(&tex3d_desc, 0, &texture3d);
-				ASSERTHR(hr);
+				}
+				else if(request->dynamic_tex_sizes.x && request->dynamic_tex_sizes.y && !request->dynamic_tex_sizes.z)
+				{
+					D3D11_TEXTURE2D_DESC tex2d_desc = {0};
+					tex2d_desc.Width = request->dynamic_tex_sizes.x;
+					tex2d_desc.Height = request->dynamic_tex_sizes.y;
+					tex2d_desc.ArraySize = 1;
+					tex2d_desc.MipLevels = 1;
+					// this is for multi-sampling and antialiasing apparently (no idea how it works)
+					tex2d_desc.SampleDesc = {1,0}; 
+					tex2d_desc.Format = DXGI_FORMAT_R32_UINT;
+					tex2d_desc.Usage = D3D11_USAGE_DEFAULT;
+					tex2d_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+					tex2d_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
 
-				*request->tex3d.texview_uid = (u16)LIST_SIZE(textures_list);
-				Dx11_texture_view** texture_view; PUSH_BACK(textures_list, assets_arena, texture_view);
-				dx11_create_texture_view(dx, texture3d, texture_view);
-				texture3d->Release();
+					ID3D11Texture2D* texture2d; 
+					hr = dx->device->CreateTexture2D(&tex2d_desc, 0, &texture2d);
+					ASSERTHR(hr);
+
+					*request->p_uid = (u16)LIST_SIZE(textures_list);
+					Dx11_texture_view** texture_view; PUSH_BACK(textures_list, assets_arena, texture_view);
+					dx11_create_texture_view(dx, texture2d, texture_view);
+					texture2d->Release();
+
+				}
+				else if(request->dynamic_tex_sizes.x && request->dynamic_tex_sizes.y && request->dynamic_tex_sizes.z)
+				{
+					
+					D3D11_TEXTURE3D_DESC tex3d_desc = {0};
+					tex3d_desc.Width = request->dynamic_tex_sizes.x;
+					tex3d_desc.Height = request->dynamic_tex_sizes.y;
+					tex3d_desc.Depth = request->dynamic_tex_sizes.z;
+					tex3d_desc.MipLevels = 1;
+					tex3d_desc.Format = DXGI_FORMAT_R32_UINT;
+					tex3d_desc.Usage = D3D11_USAGE_DEFAULT;
+					tex3d_desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+					tex3d_desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+
+					ID3D11Texture3D* texture3d; 
+					hr = dx->device->CreateTexture3D(&tex3d_desc, 0, &texture3d);
+					ASSERTHR(hr);
+
+					*request->p_uid = (u16)LIST_SIZE(textures_list);
+					Dx11_texture_view** texture_view; PUSH_BACK(textures_list, assets_arena, texture_view);
+					dx11_create_texture_view(dx, texture3d, texture_view);
+					texture3d->Release();
+				}
+				else
+				{
+					ASSERT(false);
+				}
 								
 			}break;
 
@@ -1706,7 +1743,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				{
 					ID3D11Resource* modify_texture;
 					Dx11_texture_view** texture_view;
-					LIST_GET(textures_list, request->modifiable_texture.uid, texture_view);
+					LIST_GET(textures_list, request->modifiable_texture.source_tex_uid, texture_view);
 					(*texture_view)->GetResource(&modify_texture);
 					// dx11_modify_resource(dx, modify_texture, request->modifiable_texture.new_data, request->modifiable_texture.size);
 					D3D11_BOX texbox = {
@@ -1718,13 +1755,11 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 						request->modifiable_texture.box.back
 					};
 
-					dx->context->UpdateSubresource(modify_texture, 0, 
+					dx->context->UpdateSubresource(modify_texture, 0,//ignore this 0 
 						&texbox, 
 						request->modifiable_texture.new_data, 
-						// request->modifiable_texture.source_row_pitch,
-						// request->modifiable_texture.source_depth_pitch,
-						64*8*sizeof(u32),
-						64*8*64*4*sizeof(u32)
+						request->modifiable_texture.source_row_pitch,
+						request->modifiable_texture.source_depth_pitch
 						);
 					modify_texture->Release();
 				}
