@@ -158,6 +158,40 @@ bool_to_string(b32 b)
 		return string("false");
 }
 
+internal String
+u64_to_string(u64 n, Memory_arena* arena)
+{
+	String result = {0};
+	result.text = (char*)arena_push_size(arena,0);
+
+	if(!n)
+	{
+		*(char*)arena_push_size(arena, 1) = '0';
+		arena_push_size(arena, 1);
+		result.length = 1;
+		return result;
+	}
+	u8 digits = 0;
+	u64 temp = n;
+
+	u32 i=0;
+	while(temp)
+	{
+		temp = temp/10;
+		i++;
+		digits++;
+	}	
+	arena_push_size(arena, digits);
+	result.length = i;
+	for(;digits;digits--)
+	{
+		result.text[i-1] = '0' + (n%10);
+		n = n/10;
+		i--;		
+	}
+	*arena_push_size(arena, 1) = 0; // 0 ending string
+	return result;
+}
 
 internal String
 u32_to_string(u32 n, Memory_arena* arena)
@@ -173,7 +207,7 @@ u32_to_string(u32 n, Memory_arena* arena)
 		return result;
 	}
 	u8 digits = 0;
-	s32 temp = n;
+	u32 temp = n;
 	while(temp)
 	{
 		temp = temp/10;
@@ -184,7 +218,7 @@ u32_to_string(u32 n, Memory_arena* arena)
 	result.length= i;
 	for(;digits; digits--)
 	{
-		result.text[i-1] = 48 + (n%10);
+		result.text[i-1] = '0' + (n%10);
 		n = n/10;
 		i--;
 	}
@@ -224,7 +258,7 @@ s32_to_string(s32 n, Memory_arena* arena)
 	result.length= i;
 	for(;digits; digits--)
 	{
-		result.text[i-1] = 48 + (n%10);
+		result.text[i-1] = '0' + (n%10);
 		n = n/10;
 		i--;
 	}

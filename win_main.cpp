@@ -252,7 +252,12 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 		
 		if(!SUCCEEDED(hr))
 		{
-			MessageBoxA(window, "D3D11CreateDevice failed", 0, MB_OK|MB_ICONERROR);
+			s32 error_code = 0;
+			error_code = hr;
+			String error_code_string = s32_to_string(error_code, temp_arena);
+			String error_string =  concat_strings(string("D3D11CreateDevice failed: "), error_code_string, temp_arena);
+
+			MessageBoxA(window, error_string.text, 0, MB_OK|MB_ICONERROR);
 			return 11;
 		}
 
