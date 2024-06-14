@@ -797,7 +797,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 			case CREATE_DYNAMIC_TEXTURE:{
 				if(request->dynamic_tex_sizes.x && !request->dynamic_tex_sizes.y && !request->dynamic_tex_sizes.z)
 				{
-
+					ASSERT(false);
 				}
 				else if(request->dynamic_tex_sizes.x && request->dynamic_tex_sizes.y && !request->dynamic_tex_sizes.z)
 				{
