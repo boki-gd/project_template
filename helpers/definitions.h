@@ -1,7 +1,7 @@
 #if !defined(TYPE_DEFINITIONS)
 #define TYPE_DEFINITIONS
 
-#define DEBUGMODE 1
+#define DEBUGMODE 0
 #define PRINT_FRAMERATE 0
 
 #define internal static
