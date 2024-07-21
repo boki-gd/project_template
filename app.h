@@ -9,10 +9,10 @@
 
 
 // EXPORTED FUNCTIONS
-#define UPDATE_TYPE(...) void (*__VA_ARGS__)(App_memory*, Audio, Int2)
-#define RENDER_TYPE(...) void (*__VA_ARGS__)(App_memory*, LIST(Renderer_request,), Int2 )
-#define INIT_TYPE(...) void (*__VA_ARGS__)(App_memory*, Init_data* )
-#define CLOSE_TYPE(...) void (*__VA_ARGS__)(App_memory*)
+#define UPDATE_TYPE(...) void (*__VA_ARGS__)(Platform_data*, App_data*, Audio, Int2)
+#define RENDER_TYPE(...) void (*__VA_ARGS__)(Platform_data*, App_data*, LIST(Renderer_request,), Int2 )
+#define INIT_TYPE(...) void (*__VA_ARGS__)(Platform_data*, App_data*, Init_data* )
+#define CLOSE_TYPE(...) void (*__VA_ARGS__)(Platform_data*, App_data*)
 
 // WIN FUNCTIONS
 	// file io
@@ -279,7 +279,7 @@ struct WIN_TIME_FUNCTIONS
 	OFFSET_DATE_BY_DAYS_FUNCTION_TYPE(offset_date_by_days);
 };
 
-struct App_memory
+struct Platform_data
 {
 	FILE_IO_FUNCTIONS file_io;
 	WIN_TIME_FUNCTIONS win_time;
@@ -334,8 +334,6 @@ struct App_memory
 
 	f32 old_time_s;
 	f32 fixed_dt;
-		
-	void* app;
 };
 
 
@@ -605,7 +603,7 @@ enum Asset_serialization_parse_state
 
 internal void
 parse_assets_serialization_file(
-	App_memory* memory, File_data file,
+	Platform_data* memory, File_data file,
 	ARRAY(String_index_pair, string_index_pairs),
 	LIST(String_index_pair, result_pairs)
 )
@@ -731,7 +729,7 @@ push_asset_sound_request(Asset_request* request, Memory_arena* arena, String fil
 
 
 internal void
-render_char(App_memory* memory, Font* font, u8 character,  Int2 char_pos, u32 zpos,  Color color, Int2 client_size, LIST(Renderer_request, render_list), u16 plane_mesh_uid)
+render_char(Platform_data* memory, Font* font, u8 character,  Int2 char_pos, u32 zpos,  Color color, Int2 client_size, LIST(Renderer_request, render_list), u16 plane_mesh_uid)
 {
 	int char_width = 8;
 	Tex_info* char_texinfo;
@@ -790,7 +788,7 @@ render_char(App_memory* memory, Font* font, u8 character,  Int2 char_pos, u32 zp
 
 //TODO: i will do instancing in the future so change the rendering part
 internal void
-instance_char(App_memory* memory, Font* font, u8 character,  Int2 char_pos, u32 zpos,  Color color, Int2 client_size)
+instance_char(Platform_data* memory, Font* font, u8 character,  Int2 char_pos, u32 zpos,  Color color, Int2 client_size)
 {
 	int char_width = 8;
 	Tex_info* char_texinfo;
@@ -848,7 +846,7 @@ instance_char(App_memory* memory, Font* font, u8 character,  Int2 char_pos, u32 
 }
 
 internal void
-render_text(App_memory* memory, Font* font, String text, Int2 pos, u32 zpos, Color color, Int2 client_size, LIST(Renderer_request, render_list), u16 plane_mesh_uid)
+render_text(Platform_data* memory, Font* font, String text, Int2 pos, u32 zpos, Color color, Int2 client_size, LIST(Renderer_request, render_list), u16 plane_mesh_uid)
 {
    s32 current_x = 0;
    s32 current_y = 0;
@@ -874,7 +872,7 @@ render_text(App_memory* memory, Font* font, String text, Int2 pos, u32 zpos, Col
 }
 
 internal void
-render_clamped_text(App_memory* memory, Font* font, 
+render_clamped_text(Platform_data* memory, Font* font, 
 	String text, 
 	Int2 pos, Int2 size,
 	u32 zpos, Color color, Int2 client_size, LIST(Renderer_request, render_list), u16 plane_mesh_uid)
@@ -915,7 +913,7 @@ render_clamped_text(App_memory* memory, Font* font,
 
 
 internal void
-instance_clamped_text(App_memory* memory, Font* font, 
+instance_clamped_text(Platform_data* memory, Font* font, 
 	String text, 
 	Int2 pos, Int2 size,
 	u32 zpos, Color color, Int2 client_size)
@@ -957,7 +955,7 @@ instance_clamped_text(App_memory* memory, Font* font,
 
 
 internal b8
-holding_key(App_memory* memory, Input_keyboard_indices key)
+holding_key(Platform_data* memory, Input_keyboard_indices key)
 {
 	User_input* input = memory->input;
 	if(input->keys[key] == 1)

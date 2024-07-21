@@ -4,6 +4,7 @@
 #include <dsound.h>
 
 #include "app.h"
+#include APP_HEADER_FILENAME
 
 #include "win_functions.h"
 
@@ -107,11 +108,14 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 	}
 
 
-	App_memory memory = {0};
+	Platform_data memory = {0};
 	b32 app_size = sizeof(memory) < 65535;
 	ASSERT(app_size);
 	memory.temp_arena = temp_arena;
 	memory.permanent_arena = permanent_arena;
+
+	
+	App_data* app_data = (App_data*)VirtualAlloc(0, sizeof(App_data), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 	// LOADING APP DLL
 
 
@@ -151,7 +155,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 
 	UNTIL(app_i, apps_count)
 	{
-		apps[app_i].init(&memory, &init_data);
+		apps[app_i].init(&memory, app_data, &init_data);
 	}
 
 
@@ -1592,7 +1596,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 
 		if(apps[current_app].update)
 		{
-			apps[current_app].update(&memory, {playback_list, sample_t}, client_size);
+			apps[current_app].update(&memory, app_data,{playback_list, sample_t}, client_size);
 		}
 
 
@@ -1718,7 +1722,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 		LIST(Renderer_request, render_list) = {0};
 		if(apps[current_app].render)
 		{
-			apps[current_app].render(&memory, render_list, client_size);
+			apps[current_app].render(&memory, app_data, render_list, client_size);
 		}
 
 		// ACTUALLY RENDER
@@ -2142,7 +2146,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 	}
 	if(apps[0].close_app)
 	{
-		apps[0].close_app(&memory);
+		apps[0].close_app(&memory, app_data);
 	}
 
 	//TODO: this is dumb but i don't want dumb messages each time i exit
