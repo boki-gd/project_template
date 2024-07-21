@@ -408,6 +408,11 @@ struct Audio_playback{
 	b32 loop;
 };
 
+struct Audio{
+	Audio_playback* playbacks_array;
+	u32 sample_t;
+};
+
 struct Selection_indices
 {
 	u16 hot;

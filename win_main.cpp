@@ -1570,7 +1570,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 
 		if(apps[current_app].update)
 		{
-			apps[current_app].update(&memory, playback_list, sample_t, client_size);
+			apps[current_app].update(&memory, {playback_list, sample_t}, client_size);
 		}
 
 

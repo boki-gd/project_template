@@ -9,7 +9,7 @@
 
 
 // EXPORTED FUNCTIONS
-#define UPDATE_TYPE(...) void (*__VA_ARGS__)(App_memory*, Audio_playback*, u32, Int2)
+#define UPDATE_TYPE(...) void (*__VA_ARGS__)(App_memory*, Audio, Int2)
 #define RENDER_TYPE(...) void (*__VA_ARGS__)(App_memory*, LIST(Renderer_request,), Int2 )
 #define INIT_TYPE(...) void (*__VA_ARGS__)(App_memory*, Init_data* )
 #define CLOSE_TYPE(...) void (*__VA_ARGS__)(App_memory*)
@@ -705,11 +705,11 @@ parse_assets_serialization_file(
 }
 
 internal void
-push_sound(Audio_playback* playback_list, u32 sound_uid, u32 sample_t)
+push_sound(Audio* audio, u32 sound_uid)
 {
-	Audio_playback* playback_request = find_next_available_playback(playback_list);
+	Audio_playback* playback_request = find_next_available_playback(audio->playbacks_array);
 	playback_request->sound_uid = sound_uid;
-	playback_request->initial_sample_t = sample_t;
+	playback_request->initial_sample_t = audio->sample_t;
 }
 
 
