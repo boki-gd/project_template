@@ -2,7 +2,10 @@
 // #define COBJMACROS
 #include <windows.h>
 #include <dsound.h>
+
 #include "../code/win_layer.cpp"
+#include "app.h"
+
 #include "win_functions.h"
 
 #include "d3d11_layer.h"

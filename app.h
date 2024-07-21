@@ -1,3 +1,6 @@
+#ifndef APP_H
+#define APP_H
+
 #include <math.h>
 #include "helpers/helpers.h"
 #include "3d_layer.h"
@@ -986,3 +989,5 @@ get_pushed_instances_count(Memory_arena* temp_arena, Renderer_request* request)
 	ASSERT(result < 0xffff);
 	return result;
 }
+
+#endif
