@@ -73,16 +73,38 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 	arena1.size = GIGABYTES(2); 
 	arena1.data = (u8*)VirtualAlloc(base_address, arena1.size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 	Memory_arena* permanent_arena = &arena1;
+	if(!arena1.data){
+		if(GetLastError() == ERROR_INVALID_PARAMETER){
+			ASSERT(false);// probably compiling in x86 x32 bits and size too big
+		}else{
+			ASSERT(false);
+		}
+	}
+
 
 	Memory_arena arena2 = {0};
 	arena2.size = GIGABYTES(2);
 	arena2.data = (u8*)VirtualAlloc(0, arena2.size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 	Memory_arena* temp_arena = &arena2;
+	if(!arena2.data){
+		if(GetLastError() == ERROR_INVALID_PARAMETER){
+			ASSERT(false);// probably compiling in x86 x32 bits and size too big
+		}else{
+			ASSERT(false);
+		}
+	}
 
 	Memory_arena arena3 = {0};
 	arena3.size = MEGABYTES(256);
 	arena3.data = (u8*)VirtualAlloc(0, arena3.size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 	Memory_arena* assets_arena = &arena3;
+	if(!arena1.data){
+		if(GetLastError() == ERROR_INVALID_PARAMETER){
+			ASSERT(false);// probably compiling in x86 x32 bits and size too big
+		}else{
+			ASSERT(false);
+		}
+	}
 
 
 	App_memory memory = {0};
