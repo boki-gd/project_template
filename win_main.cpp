@@ -1270,10 +1270,11 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 			dx->context->OMSetDepthStencilState(depth_stencil->state, 0);
 			
 			Dx11_render_target_view** rtviews_to_bind = ARENA_PUSH_STRUCT(temp_arena, Dx11_render_target_view*);
+			
 
-			Render_target* current_render_target;
-			LIST_GET(render_targets_list, 0, current_render_target);
-			rtviews_to_bind[0] = current_render_target->target_view;
+			create_screen_render_target_view(dx, &screen_render_target->target_view);
+			
+			rtviews_to_bind[0] = screen_render_target->target_view;
 
 			dx->context->OMSetRenderTargets(1, rtviews_to_bind, depth_stencil->view); 
 		}
