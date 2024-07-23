@@ -1,5 +1,6 @@
 #ifndef APP_H
 #define APP_H
+//TODO: app.h need another name
 
 #include <math.h>
 #include "helpers/helpers.h"
@@ -365,20 +366,21 @@ get_next_available_index(u8* array, u32 arraylen, u16* last_used_index)
 
 
 // this MUST match the register buffer indices in the shader code
-enum Renderer_variable_register_index : u16
+enum Shader_constant_buffer_register_index : u16
 {
 	// VERTEX SHADER REGISTER INDICES
-	OBJECT_DATA_REGISTER_INDEX = 0,
-	PROJECTION_AND_WORLD_VIEW_REGISTER_INDEX,
-	CAMERA_POS_REGISTER_INDEX,
-	BONE_TRANSFORMS_REGISTER_INDEX,
-	FIRST_AVAILABLE_VS_REGISTER_INDEX,
+	REGISTER_INDEX_VS_OBJECT_DATA = 0,
+	REGISTER_INDEX_VS_PROJECTION_AND_WORLD_VIEW,
+	REGISTER_INDEX_VS_CAMERA_POS,
+
+	REGISTER_INDEX_VS_FIRST_AVAILABLE_APP_SPECIFIC_INDEX, // THIS IS TO USE IN THE APP SPECIFIC SIDE
 	
 
 	// PIXEL SHADER REGISTER_INDICES
-	SCREEN_DATA_REGISTER_INDEX = 14, // this is pixel shader register index 0
-	TIME_REGISTER_INDEX,
-	FIRST_AVAILABLE_PS_REGISTER_INDEX,
+	REGISTER_INDEX_PS_SCREEN_DATA = 14, // this is pixel shader register index 0
+	REGISTER_INDEX_PS_TIME,
+
+	REGISTER_INDEX_PS_FIRST_AVAILABLE_APP_SPECIFIC_INDEX,
 };
 
 //@@bitwise_enum@@
@@ -432,7 +434,6 @@ struct Renderer_request{
 		struct
 		{
 			u16 uid;
-			u16 size;
 			void* new_data;
 		}renderer_variable;
 		
@@ -533,6 +534,27 @@ struct Input_element_desc
 	ARRAY(IE_FORMATS, formats);
 	u32 next_slot_beginning_index; // this is for instancing
 };
+#define DEFAULT_IED_NAMES \
+	"POSITION", \
+	"TEXCOORD",\
+	"NORMAL",\
+	"BONE_WEIGHTS",\
+	"BONE_INDICES",\
+	\
+	"INSTANCE_OBJECT_TRANSFORM",\
+	"INSTANCE_COLOR",\
+	"INSTANCE_TEXRECT"
+
+#define DEFAULT_IED_FORMATS \
+	IE_FORMAT_3F32,\
+	IE_FORMAT_2F32,\
+	IE_FORMAT_3F32,\
+	IE_FORMAT_3F32,\
+	IE_FORMAT_3U32,\
+	\
+	IE_FORMAT_16F32,\
+	IE_FORMAT_4F32,\
+	IE_FORMAT_4F32,
 
 struct Asset_request
 {
@@ -555,7 +577,7 @@ struct Asset_request
 		};
 		struct
 		{
-			Renderer_variable_register_index register_index;
+			u32 register_index;
 			u16 size;// constant buffer can't be bigger than 65536 (actually it can but it's complicated)
 		}constant_buffer;
 
@@ -722,12 +744,14 @@ push_asset_sound_request(Asset_request* request, Memory_arena* arena, String fil
 }
 
 
-// TEXT RENDERING 
+// shorthand for pushing a Renderer_request to the render_list assuming there is a Renderer_request* named request
 #define PUSH_BACK_RENDER_REQUEST(render_list) \
    ASSERT(!request || request->type_flags != REQUEST_FLAG_RENDER_OBJECT || (request->color.a && request->scale.x && request->scale.y && request->scale.z));\
    PUSH_BACK(render_list, memory->temp_arena, request)
 
 
+
+// TEXT RENDERING 
 internal void
 render_char(Platform_data* memory, Font* font, u8 character,  Int2 char_pos, u32 zpos,  Color color, Int2 client_size, LIST(Renderer_request, render_list), u16 plane_mesh_uid)
 {

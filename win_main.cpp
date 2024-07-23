@@ -152,11 +152,133 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 	memory.win_time.offset_date_by_days = &win_offset_date_by_days;
 
 	Init_data init_data = {0};
-
-	UNTIL(app_i, apps_count)
 	{
-		apps[app_i].init(&memory, app_data, &init_data);
-	}
+		Asset_request* request;
+		// DEFAULT TEXTURE VIEW
+		{
+			PUSH_BACK(init_data.asset_requests, memory.temp_arena, request)
+			
+			u32* white_pixel = ARENA_PUSH_STRUCT(memory.temp_arena, u32);
+			*white_pixel = 0xffffffff;
+			Surface whitetex ={1,1, white_pixel};
+			
+			request->type = TEX_FROM_SURFACE_REQUEST;
+			request->tex_surface = whitetex;
+
+			request->p_uid = ARENA_PUSH_STRUCT(memory.temp_arena, u16);
+		}
+		// DEFAULT VERTEX SHADER
+		{
+			DEFINE_ARRAY(char*, ie_names, memory.temp_arena, 
+				{
+					DEFAULT_IED_NAMES
+				}
+			);
+			DEFINE_ARRAY(IE_FORMATS, ie_formats, memory.temp_arena, 
+				{
+					DEFAULT_IED_FORMATS
+				}
+			);
+			Input_element_desc default_ied = {ie_names, ie_formats, 5};
+
+			PUSH_BACK(init_data.asset_requests, memory.temp_arena, request);
+			request->type = VERTEX_SHADER_FROM_FILE_REQUEST;
+			request->filename = string("shaders/3d_vs.cso");
+			ASSERT(win_file_exists(request->filename.text));
+			request->p_uid = ARENA_PUSH_STRUCT(memory.temp_arena, u16);
+			request->ied = default_ied;
+		}
+		// DEFAULT PIXEL SHADER
+		{
+			PUSH_BACK(init_data.asset_requests, memory.temp_arena, request);
+         request->type = PIXEL_SHADER_FROM_FILE_REQUEST;
+         request->filename = string("shaders/simple_ps.cso");
+			ASSERT(win_file_exists(request->filename.text));
+         request->p_uid = ARENA_PUSH_STRUCT(memory.temp_arena, u16);
+		}
+
+		// DEFAULT MESH
+		{
+			PUSH_BACK(init_data.asset_requests, memory.temp_arena, request);
+			DEFINE_ARRAY(u16, plane_indices, memory.temp_arena,{0,1,2, 2,1,3});
+			DEFINE_ARRAY(Vertex, plane, memory.temp_arena, 
+				{
+					{{0, 0, 0}, 	{0, 0}, 	{0,0,-1.0f}, {1.0f}},
+					{{1.0f, 0, 0}, 	{1, 0},		{0,0,-1.0f}, {1.0f}},
+					{{0, -1.0f, 0}, 	{0, 1},		{0,0,-1.0f}, {1.0f}},
+					{{1.0f, -1.0f, 0}, 	{1, 1},	{0,0,-1.0f}, {1.0f}}
+				}
+			);
+
+			request->type = MESH_FROM_PRIMITIVES_REQUEST;
+			request->p_uid = ARENA_PUSH_STRUCT(memory.temp_arena, u16);
+			request->mesh_primitives.vertices = plane;
+			request->mesh_primitives.vertex_size = sizeof(plane[0]);
+			request->mesh_primitives.vertex_count = ARRAYLEN(plane);
+			request->mesh_primitives.indices = plane_indices;
+			request->mesh_primitives.indices_count = ARRAYLEN(plane_indices);
+			request->mesh_primitives.topology_uid = TOPOLOGY_TRIANGLE_LIST;
+		}
+
+		// DEFAULT BLEND STATE
+		{
+			PUSH_BACK(init_data.asset_requests, memory.temp_arena, request);
+			request->type = CREATE_BLEND_STATE_REQUEST;
+			request->enable_alpha_blending = 0;
+			request->p_uid = ARENA_PUSH_STRUCT(memory.temp_arena, u16);
+		}
+
+		// DEFAULT DEPTH STENCIL IS ALREADY CREATED
+
+		// LIST(Depth_stencil, depth_stencils_list) = {0};
+		// {
+		// 	Depth_stencil* null_depth_stencil;
+		// 	PUSH_BACK(depth_stencils_list, assets_arena, null_depth_stencil);
+		// }
+
+		// TODO: DEFAULT FONT
+
+		// ASSERT(false);
+      // NEW_ASSET_REQUEST;
+      // request->type = FONT_FROM_FILE_REQUEST;
+      // request->filename = string("data/Inconsolata-Regular.ttf");
+      // request->font_uid = &assets->fonts.default_font;
+      // request->font_lines_height = 18.0f;
+		
+		
+		// CREATING DEFAULT CONSTANT BUFFERS
+		
+		PUSH_BACK(init_data.asset_requests, memory.temp_arena, request);
+      request->type = CREATE_CONSTANT_BUFFER_REQUEST;
+      request->constant_buffer.register_index = REGISTER_INDEX_VS_OBJECT_DATA;
+      request->constant_buffer.size = sizeof(Object_buffer_data);
+
+		PUSH_BACK(init_data.asset_requests, memory.temp_arena, request);
+      request->type = CREATE_CONSTANT_BUFFER_REQUEST;
+      request->constant_buffer.register_index = REGISTER_INDEX_VS_PROJECTION_AND_WORLD_VIEW;
+      request->constant_buffer.size = 2*sizeof(Matrix);
+
+		PUSH_BACK(init_data.asset_requests, memory.temp_arena, request);
+      request->type = CREATE_CONSTANT_BUFFER_REQUEST;
+      request->constant_buffer.register_index = REGISTER_INDEX_VS_CAMERA_POS;
+      request->constant_buffer.size = sizeof(V4);
+		
+		PUSH_BACK(init_data.asset_requests, memory.temp_arena, request);
+      request->type = CREATE_CONSTANT_BUFFER_REQUEST;
+      request->constant_buffer.register_index = REGISTER_INDEX_PS_SCREEN_DATA;
+      request->constant_buffer.size = sizeof(Int2);
+
+		PUSH_BACK(init_data.asset_requests, memory.temp_arena, request);
+      request->type = CREATE_CONSTANT_BUFFER_REQUEST;
+      request->constant_buffer.register_index = REGISTER_INDEX_PS_TIME;
+      request->constant_buffer.size = sizeof(float);
+
+		UNTIL(app_i, apps_count)
+		{
+			apps[app_i].init(&memory, app_data, &init_data);
+		}
+
+	}	
 
 
 
@@ -212,7 +334,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 	// SETTING WINDOW PROPERTIES TO ACCESS THEM FROM THE FUNCTION_WINDOW_PROCEDURE
 
 
-	Int2 client_size = {0,0};
+	Int2 client_size = win_get_client_sizes(window);
 	SetPropA(window, "enforce_aspect_ratio", &memory.enforce_aspect_ratio);
 	SetPropA(window, "client_size", &client_size);
 	SetPropA(window, "close_app", &memory.close_app);
@@ -447,7 +569,6 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 	ie_formats_sizes[IE_FORMAT_16F32] = 64;
 	
 	LIST(Dx11_texture_view*, textures_list) = {0};
-
 	LIST(Vertex_shader, vertex_shaders_list) = {0};
 	LIST(Pixel_shader, pixel_shaders_list) = {0};
 	LIST(Dx_mesh, meshes_list) = {0};
@@ -457,9 +578,12 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 		Depth_stencil* null_depth_stencil;
 		PUSH_BACK(depth_stencils_list, assets_arena, null_depth_stencil);
 	}
+
+	// RENDER TARGET VIEWS RTV's
 	LIST(Render_target, render_targets_list) = {0};
 	Render_target* screen_render_target;
 	PUSH_BACK(render_targets_list, assets_arena, screen_render_target);
+
 	// this is so that when i use the index 0 for the REQUEST_FLAG_SET_SHADER_RESOURCE_FROM_RENDER_TARGET
 	// the texture_view pointer will be a 0 so that means unset the resource
 	screen_render_target->texture_view = ARENA_PUSH_STRUCT(assets_arena, Dx11_texture_view*);
@@ -467,7 +591,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 	D3D_constant_buffer renderer_variables [28] = {0}; // 14 constant buffers per pipeline, vertex and pixel
 
 
-	Sound_sample sounds_list [100] = {0};// TODO: THIS IS KEEPING ME FROM SKIPPING win_layer COMPILATION
+	Sound_sample sounds_list [100] = {0};// TODO: THIS IS KEEPING ME FROM SKIPPING win_layer COMPILATION (i forgor why)
 	{
 		u32 MAX_SOUNDS = ARRAYCOUNT(sounds_list);
 		#ifndef SOUNDS_COUNT
@@ -476,9 +600,12 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 		#endif
 	}
 
-	ARRAY_DECLARATION(Audio_playback, playback_list, 300, assets_arena);
+	ARRAY_DECLARATION(Audio_playback, playback_array, 300, assets_arena);
 
-	FOREACH(Asset_request, request, init_data.asset_requests){
+	u32 assets_count = 0;
+
+	FOREACH(Asset_request, request, init_data.asset_requests)
+	{
 		switch(request->type){
 			case TEX_FROM_FILE_REQUEST:{
 				int comp;
@@ -953,7 +1080,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 
 			case CREATE_CONSTANT_BUFFER_REQUEST:{
 				D3D_constant_buffer* new_constant_buffer = &renderer_variables[request->constant_buffer.register_index];
-				Renderer_variable_register_index register_index = (Renderer_variable_register_index)(request->constant_buffer.register_index%14);
+				Shader_constant_buffer_register_index register_index = (Shader_constant_buffer_register_index)(request->constant_buffer.register_index%14);
 
 				u16 buffer_size = 16*((request->constant_buffer.size+15)/16);
 
@@ -1031,6 +1158,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				ASSERT(false);
 			break;
 		}
+		assets_count++;
 	}
 
 	D3D_constant_buffer* object_buffer = &renderer_variables[0];
@@ -1069,7 +1197,6 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 	User_input holding_inputs = {0};
 	memory.holding_inputs = &holding_inputs;
 
-	memory.perspective_on = 1;
 	memory.lock_mouse = false;
 
 	u32 sample_t = 0;
@@ -1108,6 +1235,104 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 		f32 keyboard_repeat_rate = 2.5f + ((keyboard_speed / 31) * (30.0f - 2.5f));
 		memory.keyboard_repeat_cooldown = 1 / keyboard_repeat_rate;
 	}
+	
+   // PREPARING FOR RENDERING THIS FRAME
+   {		
+		// |REQUEST_FLAG_SET_PS
+		{
+			Pixel_shader* pixel_shader; LIST_GET(pixel_shaders_list, 0, pixel_shader);
+			dx->context->PSSetShader(pixel_shader->shader, 0, 0);
+		}
+		// |REQUEST_FLAG_SET_VS
+		{
+			Vertex_shader* vertex_shader; LIST_GET(vertex_shaders_list, 0, vertex_shader);
+
+			dx->context->VSSetShader(vertex_shader->shader, 0, 0);
+			dx->context->IASetInputLayout(vertex_shader->input_layout);
+		}
+		// |REQUEST_FLAG_RESIZE_DEPTH_STENCIL_VIEW
+		{
+			Depth_stencil* resize_ds;
+			LIST_GET(depth_stencils_list, 0, resize_ds);
+
+			dx11_create_depth_stencil_view(dx, &resize_ds->view, client_size.x, client_size.y);
+			dx->context->ClearDepthStencilView(
+				resize_ds->view,
+				D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
+				1.0f, 0
+			);
+		}	
+		// |REQUEST_FLAG_SET_RENDER_TARGET_AND_DEPTH_STENCIL
+		{
+			
+			Depth_stencil* depth_stencil; LIST_GET(depth_stencils_list, 0, depth_stencil);
+			// state can be null to set the default depth_stencil in 
+			dx->context->OMSetDepthStencilState(depth_stencil->state, 0);
+			
+			Dx11_render_target_view** rtviews_to_bind = ARENA_PUSH_STRUCT(temp_arena, Dx11_render_target_view*);
+
+			Render_target* current_render_target;
+			LIST_GET(render_targets_list, 0, current_render_target);
+			rtviews_to_bind[0] = current_render_target->target_view;
+
+			dx->context->OMSetRenderTargets(1, rtviews_to_bind, depth_stencil->view); 
+		}
+		// |REQUEST_FLAG_RESIZE_TARGET_VIEW
+		{
+			
+		}
+
+		// |REQUEST_FLAG_CHANGE_VIEWPORT_SIZE
+		{
+			dx11_set_viewport(dx, 0, 0, client_size.x, client_size.y);
+
+		}
+		// |REQUEST_FLAG_SET_RASTERIZER_STATE
+		{
+			dx->rasterizer_state->Release();
+			global_rasterizer_desc.FillMode = fill_modes_list[FILL_MODE_SOLID];
+			global_rasterizer_desc.CullMode = cull_modes_list[CULL_MODE_NONE];
+			hr = dx->device->CreateRasterizerState(&global_rasterizer_desc, &dx->rasterizer_state);
+			
+			dx11_bind_rasterizer_state(dx, dx->rasterizer_state);
+
+			ASSERTHR(hr);
+			
+		}
+		// |REQUEST_FLAG_SET_BLEND_STATE
+		{
+			Dx11_blend_state** blend_state; LIST_GET(blend_states_list, 0, blend_state);
+			dx->context->OMSetBlendState(*blend_state, 0, ~0U);   
+		}
+
+		// |REQUEST_FLAG_MODIFY_RENDERER_VARIABLE
+		{
+         Matrix view_matrices[2] = {0};
+         
+         Quaternion camera_rotation = quaternion_transform_globally(
+            create_quaternion({1,0,0}, 0),
+            create_quaternion({0,1,0}, 0)
+         );
+         view_matrices[0] = 
+            matrix_translation( v3(0,0,0) )
+            *
+            matrix_from_quaternion(quaternion_invert(camera_rotation))
+         ;//WORLD VIEW MATRIX
+         
+         // WORLD PROJECTION
+         if(memory.perspective_on){
+            view_matrices[1] = build_perspective_matrix(memory.aspect_ratio, memory.fov, 0.1f, 500.0f, memory.depth_effect);
+         }else{         
+            view_matrices[1] = build_orthographic_matrix(memory.aspect_ratio, 2.0f, 0.001f, 100.0f);
+         }		
+
+			dx11_modify_resource(dx, 
+				renderer_variables[REGISTER_INDEX_VS_PROJECTION_AND_WORLD_VIEW].buffer, 
+				view_matrices, 
+				renderer_variables[REGISTER_INDEX_VS_PROJECTION_AND_WORLD_VIEW].size
+			);
+		}
+   }
 	
 
 	while(!memory.close_app)
@@ -1596,7 +1821,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 
 		if(apps[current_app].update)
 		{
-			apps[current_app].update(&memory, app_data,{playback_list, sample_t}, client_size);
+			apps[current_app].update(&memory, app_data,{playback_array, sample_t}, client_size);
 		}
 
 
@@ -1631,12 +1856,12 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 			{
 				u32 samples_to_write = bytes_to_write / audio.bytes_per_sample;
 				s16* audio_processing_buffer = (s16*)arena_push_size(temp_arena, bytes_to_write);
-				u32 max_audio_playback_count = ARRAYLEN(playback_list);
+				u32 max_audio_playback_count = ARRAYLEN(playback_array);
 				UNTIL(i, max_audio_playback_count)
 				{
-					if(!playback_list[i].initial_sample_t ) continue;
+					if(!playback_array[i].initial_sample_t ) continue;
 
-					Audio_playback* playback = &playback_list[i];
+					Audio_playback* playback = &playback_array[i];
         			s16* sample_out = audio_processing_buffer;
 					
 					u32 playback_sample_t = last_sample_t-playback->initial_sample_t;
@@ -1845,7 +2070,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				}
 				if(request->type_flags & REQUEST_FLAG_RESIZE_TARGET_VIEW)
 				{	
-					// the screen rtv cannot be resized this way, and i already do it when the client size changes111
+					// the screen rtv cannot be resized this way, and i already do it when the client size changes
 					ASSERT(request->resize_rtv_uid != 0); 
 
 					Render_target* render_target;
@@ -1901,12 +2126,13 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				if(request->type_flags & REQUEST_FLAG_SET_RENDER_TARGET_AND_DEPTH_STENCIL)
 				{
 					Depth_stencil* depth_stencil; LIST_GET(depth_stencils_list, request->set_depth_stencil_uid, depth_stencil);
-					// state can be null
-					dx11_bind_depth_stencil_state(dx, depth_stencil->state);
-					Dx11_render_target_view** rtviews_to_bind = ARENA_PUSH_STRUCTS(temp_arena, Dx11_render_target_view*, request->set_rtv_count);
+					// state can be null to set the default depth_stencil in 
+					dx->context->OMSetDepthStencilState(depth_stencil->state, 0);
 
 					ASSERT(request->set_rtv_count);
 					ASSERT(request->set_rtv_uids);
+					
+					Dx11_render_target_view** rtviews_to_bind = ARENA_PUSH_STRUCTS(temp_arena, Dx11_render_target_view*, request->set_rtv_count);
 
 					UNTIL(i, request->set_rtv_count)
 					{
@@ -1918,11 +2144,10 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				}
 				if(request->type_flags & REQUEST_FLAG_MODIFY_RENDERER_VARIABLE)
 				{
-					ASSERT(request->renderer_variable.size);
 					dx11_modify_resource(dx, 
 						renderer_variables[request->renderer_variable.uid].buffer, 
 						request->renderer_variable.new_data, 
-						request->renderer_variable.size
+						renderer_variables[request->renderer_variable.uid].size
 						);
 				}
 				if(request->type_flags & REQUEST_FLAG_CHANGE_VIEWPORT_SIZE)
@@ -2166,19 +2391,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 			renderer_variables[cb_index].buffer->Release();
 		}
 	}
-	// object_buffer->buffer->Release();
-	// projection_view_buffer->buffer->Release();
-	// // object_color_buffer->buffer->Release();
-	// // object_texrect_buffer->buffer->Release();
-	// camera_pos_buffer->buffer->Release();
-	// screen_dimensions_buffer->buffer->Release();
-	// time_constant_buffer->buffer->Release();
-	// bone_transforms->buffer->Release();
-
-	// for( struct : Dx_mesh{u32 i}iterator = {0,list[0]}; 
-	// iterator.i<LIST_SIZE(list); 
-	// iterator.i++, SKIP_ELEM(iterator))
-
+	
 	FOREACH(Dx_mesh, current_mesh, meshes_list)
 	{
 		current_mesh->vertex_buffer->Release();

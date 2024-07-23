@@ -75,7 +75,7 @@ struct D3D_constant_buffer
 {
 	Dx11_buffer* buffer;
 	u32 size;
-	Renderer_variable_register_index register_index;
+	Shader_constant_buffer_register_index register_index;
 };
 
 struct Render_target
@@ -255,7 +255,7 @@ dx11_create_ps(D3D* dx, File_data ps, Dx11_pixel_shader** result)
 internal void
 dx11_create_constant_buffer(
 	D3D* dx, D3D_constant_buffer* result, 
-	u32 buffer_size, Renderer_variable_register_index register_index, 
+	u32 buffer_size, Shader_constant_buffer_register_index register_index, 
 	void* initialize)
 {
 	HRESULT hr = 0;
@@ -342,11 +342,11 @@ dx11_create_blend_state(D3D* dx, Dx11_blend_state** result, bool enable_alpha_bl
 
 
 internal void 
-dx11_create_depth_stencil_state(D3D* dx, Dx11_depth_stencil_state** result, bool enable)
+dx11_create_depth_stencil_state(D3D* dx, Dx11_depth_stencil_state** result, bool is_enabled)
 {
 	HRESULT hr = {0};
 	D3D11_DEPTH_STENCIL_DESC desc = {0};
-	desc.DepthEnable = enable; 
+	desc.DepthEnable = is_enabled; 
 	desc.DepthWriteMask = D3D11_DEPTH_WRITE_MASK_ALL;
 	// D3D11_COMPARISON_GREATER/D3D11_COMPARISON_LESS/D3D11_COMPARISON_EQUAL
 	desc.DepthFunc = D3D11_COMPARISON_LESS;
@@ -503,11 +503,6 @@ internal void
 dx11_bind_rasterizer_state(D3D* dx, Dx11_rasterizer_state* rasterizer_state)
 {
 dx->context->RSSetState(rasterizer_state);
-}
-internal void
-dx11_bind_depth_stencil_state(D3D* dx, Dx11_depth_stencil_state* depth_stencil_state)
-{
-	dx->context->OMSetDepthStencilState(depth_stencil_state, 0);
 }
 
 internal void
