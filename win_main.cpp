@@ -2215,6 +2215,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 					Render_target* rtv_to_clear;
 					LIST_GET(render_targets_list, request->clear_rtv.uid, rtv_to_clear);
 					dx->context->ClearRenderTargetView(rtv_to_clear->target_view, (float*)&request->clear_rtv.color);
+					ASSERT(true);
 				}
 
 
@@ -2251,6 +2252,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 					}
 					else
 					{
+						object_data.texrect = {0,0,1,1};
 						ASSERT(true);
 					}
 					dx11_modify_resource(dx, object_buffer->buffer, &object_data, sizeof(object_data));
@@ -2259,6 +2261,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 					Dx_mesh* object_mesh; LIST_GET(meshes_list, object->mesh_uid, object_mesh);
 					
 					dx11_draw_mesh(dx, object_mesh);
+					ASSERT(true);
 				}				
 				else if(request->type_flags & REQUEST_FLAG_RENDER_INSTANCES)
 				{
