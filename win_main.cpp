@@ -1216,7 +1216,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 	}
 	// Int2 smaller_client_size = {1600, 900};
 	memory.renderer_needs_resizing = 1;
-	memory.aspect_ratio = 1.0f;
+	memory.aspect_ratio = (((f32)client_size.x) / client_size.y);
 	
 	// MAIN LOOP ________________________________________________________________________________________________________________________
 
