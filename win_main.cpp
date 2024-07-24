@@ -162,7 +162,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 			*white_pixel = 0xffffffff;
 			Surface whitetex ={1,1, white_pixel};
 			
-			request->type = TEX_FROM_SURFACE_REQUEST;
+			request->type = ASSET_REQUEST_TEX_FROM_SURFACE;
 			request->tex_surface = whitetex;
 
 			request->p_uid = ARENA_PUSH_STRUCT(memory.temp_arena, u16);
@@ -182,7 +182,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 			Input_element_desc default_ied = {ie_names, ie_formats, 5};
 
 			PUSH_BACK(init_data.asset_requests, memory.temp_arena, request);
-			request->type = VERTEX_SHADER_FROM_FILE_REQUEST;
+			request->type = ASSET_REQUEST_VS_FROM_FILE;
 			request->filename = string("shaders/3d_vs.cso");
 			ASSERT(win_file_exists(request->filename.text));
 			request->p_uid = ARENA_PUSH_STRUCT(memory.temp_arena, u16);
@@ -191,7 +191,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 		// DEFAULT PIXEL SHADER
 		{
 			PUSH_BACK(init_data.asset_requests, memory.temp_arena, request);
-         request->type = PIXEL_SHADER_FROM_FILE_REQUEST;
+         request->type = ASSET_REQUEST_PS_FROM_FILE;
          request->filename = string("shaders/simple_ps.cso");
 			ASSERT(win_file_exists(request->filename.text));
          request->p_uid = ARENA_PUSH_STRUCT(memory.temp_arena, u16);
@@ -210,7 +210,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				}
 			);
 
-			request->type = MESH_FROM_PRIMITIVES_REQUEST;
+			request->type = ASSET_REQUEST_MESH_FROM_PRIMITIVES;
 			request->p_uid = ARENA_PUSH_STRUCT(memory.temp_arena, u16);
 			request->mesh_primitives.vertices = plane;
 			request->mesh_primitives.vertex_size = sizeof(plane[0]);
@@ -223,7 +223,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 		// DEFAULT BLEND STATE
 		{
 			PUSH_BACK(init_data.asset_requests, memory.temp_arena, request);
-			request->type = CREATE_BLEND_STATE_REQUEST;
+			request->type = ASSET_REQUEST_CREATE_BLEND_STATE;
 			request->enable_alpha_blending = 0;
 			request->p_uid = ARENA_PUSH_STRUCT(memory.temp_arena, u16);
 		}
@@ -240,7 +240,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 
 		// ASSERT(false);
       // NEW_ASSET_REQUEST;
-      // request->type = FONT_FROM_FILE_REQUEST;
+      // request->type = ASSET_REQUEST_FONT_FROM_FILE;
       // request->filename = string("data/Inconsolata-Regular.ttf");
       // request->font_uid = &assets->fonts.default_font;
       // request->font_lines_height = 18.0f;
@@ -249,35 +249,39 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 		// CREATING DEFAULT CONSTANT BUFFERS
 		
 		PUSH_BACK(init_data.asset_requests, memory.temp_arena, request);
-      request->type = CREATE_CONSTANT_BUFFER_REQUEST;
+      request->type = ASSET_REQUEST_CREATE_CONSTANT_BUFFER;
       request->constant_buffer.register_index = REGISTER_INDEX_VS_OBJECT_DATA;
       request->constant_buffer.size = sizeof(Object_buffer_data);
 
 		PUSH_BACK(init_data.asset_requests, memory.temp_arena, request);
-      request->type = CREATE_CONSTANT_BUFFER_REQUEST;
+      request->type = ASSET_REQUEST_CREATE_CONSTANT_BUFFER;
       request->constant_buffer.register_index = REGISTER_INDEX_VS_PROJECTION_AND_WORLD_VIEW;
       request->constant_buffer.size = 2*sizeof(Matrix);
 
 		PUSH_BACK(init_data.asset_requests, memory.temp_arena, request);
-      request->type = CREATE_CONSTANT_BUFFER_REQUEST;
+      request->type = ASSET_REQUEST_CREATE_CONSTANT_BUFFER;
       request->constant_buffer.register_index = REGISTER_INDEX_VS_CAMERA_POS;
       request->constant_buffer.size = sizeof(V4);
 		
 		PUSH_BACK(init_data.asset_requests, memory.temp_arena, request);
-      request->type = CREATE_CONSTANT_BUFFER_REQUEST;
+      request->type = ASSET_REQUEST_CREATE_CONSTANT_BUFFER;
       request->constant_buffer.register_index = REGISTER_INDEX_PS_SCREEN_DATA;
       request->constant_buffer.size = sizeof(Int2);
 
 		PUSH_BACK(init_data.asset_requests, memory.temp_arena, request);
-      request->type = CREATE_CONSTANT_BUFFER_REQUEST;
+      request->type = ASSET_REQUEST_CREATE_CONSTANT_BUFFER;
       request->constant_buffer.register_index = REGISTER_INDEX_PS_TIME;
       request->constant_buffer.size = sizeof(float);
+		
+		PUSH_BACK(init_data.asset_requests, memory.temp_arena, request);
+		request->type = ASSET_REQUEST_CREATE_DEPTH_STENCIL;
+		request->p_uid = ARENA_PUSH_STRUCT(memory.temp_arena, u16);
+		request->enable_depth = 0;
 
 		UNTIL(app_i, apps_count)
 		{
 			apps[app_i].init(&memory, app_data, &init_data);
 		}
-
 	}	
 
 
@@ -575,8 +579,8 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 	LIST(Dx11_blend_state*, blend_states_list) = {0};
 	LIST(Depth_stencil, depth_stencils_list) = {0};
 	{
-		Depth_stencil* null_depth_stencil;
-		PUSH_BACK(depth_stencils_list, assets_arena, null_depth_stencil);
+		// Depth_stencil* null_depth_stencil;
+		// PUSH_BACK(depth_stencils_list, assets_arena, null_depth_stencil);
 	}
 
 	// RENDER TARGET VIEWS RTV's
@@ -607,7 +611,10 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 	FOREACH(Asset_request, request, init_data.asset_requests)
 	{
 		switch(request->type){
-			case TEX_FROM_FILE_REQUEST:{
+			case ASSET_REQUEST_TEX_FROM_FILE:{
+				ASSERT(win_file_exists(request->filename.text));
+				ASSERT(request->p_uid);
+
 				int comp;
 				Surface tex_surface = {0};
 				char temp_buffer [MAX_PATH] = {0}; 
@@ -632,7 +639,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 			}break;
 
 
-			case VERTEX_SHADER_FROM_FILE_REQUEST:{
+			case ASSET_REQUEST_VS_FROM_FILE:{
 				// COMPILING VS
 					// File_data compiled_vs = dx11_get_compiled_shader(request->filename, temp_arena, "vs", VS_PROFILE);
 				// CREATING VS
@@ -707,7 +714,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 			}break;
 
 
-			case PIXEL_SHADER_FROM_FILE_REQUEST:{
+			case ASSET_REQUEST_PS_FROM_FILE:{
 				u32 current_index = LIST_SIZE(pixel_shaders_list);
 				ASSERT(current_index < 0xffff);
 				*request->p_uid = (u16)current_index;
@@ -726,7 +733,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 			}break;
 
 
-			case MESH_FROM_FILE_REQUEST:
+			case ASSET_REQUEST_MESH_FROM_FILE:
 			{
 				File_data glb_file = win_read_file(request->filename, temp_arena);
 				GLB glb = {0};
@@ -767,7 +774,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 			}break;
 
 
-			case CREATE_BLEND_STATE_REQUEST:{
+			case ASSET_REQUEST_CREATE_BLEND_STATE:{
 				u32 current_index = LIST_SIZE(blend_states_list);
 				ASSERT(current_index < 0xffff);
 				*request->p_uid = (u16)current_index;
@@ -781,7 +788,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 			}break;
 
 
-			case CREATE_DEPTH_STENCIL_REQUEST:{
+			case ASSET_REQUEST_CREATE_DEPTH_STENCIL:{
 				u32 current_index = LIST_SIZE(depth_stencils_list);
 				ASSERT(current_index < 0xffff);
 				*request->p_uid = (u16)current_index;
@@ -791,7 +798,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 			}break;
 
 
-			case FONT_FROM_FILE_REQUEST:
+			case ASSET_REQUEST_FONT_FROM_FILE:
 			{
 				ASSERT(request->font_lines_height);
 				// FONTS 
@@ -927,7 +934,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 			}break;
 
 
-			case TEX_FROM_SURFACE_REQUEST:{
+			case ASSET_REQUEST_TEX_FROM_SURFACE:{
 				u32 current_index = LIST_SIZE(memory.tex_infos);
 				ASSERT(current_index < 0xffff);
 				*request->p_uid = (u16)current_index;
@@ -949,7 +956,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				texture2d->Release();
 			}break;
 
-			case CREATE_DYNAMIC_TEXTURE:{
+			case ASSET_REQUEST_CREATE_DYNAMIC_TEXTURE:{
 				if(request->dynamic_tex_sizes.x && !request->dynamic_tex_sizes.y && !request->dynamic_tex_sizes.z)
 				{
 					ASSERT(false);
@@ -1007,7 +1014,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 								
 			}break;
 
-			case CREATE_RENDER_TARGET_REQUEST:
+			case ASSET_REQUEST_CREATE_RTV:
 			{
 				*request->p_uid = (u16)LIST_SIZE(render_targets_list);
 				Render_target* new_render_target;
@@ -1017,7 +1024,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 			}break;
 
 
-			case SOUND_FROM_FILE_REQUEST:{
+			case ASSET_REQUEST_SOUND_FROM_FILE:{
 				Sound_sample* new_audio_samples =  &sounds_list[request->sound_uid];
 				ASSERT(!new_audio_samples->samples); // already saved in this index
 
@@ -1067,7 +1074,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 			}break;
 
 
-			case MESH_FROM_PRIMITIVES_REQUEST:{
+			case ASSET_REQUEST_MESH_FROM_PRIMITIVES:{
 				u32 current_index = LIST_SIZE(meshes_list);
 				ASSERT(current_index < 0xffff);
 				*request->p_uid = (u16)current_index;
@@ -1078,7 +1085,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				topologies_list[request->mesh_primitives.topology_uid]);
 			}break;
 
-			case CREATE_CONSTANT_BUFFER_REQUEST:{
+			case ASSET_REQUEST_CREATE_CONSTANT_BUFFER:{
 				D3D_constant_buffer* new_constant_buffer = &renderer_variables[request->constant_buffer.register_index];
 				Shader_constant_buffer_register_index register_index = (Shader_constant_buffer_register_index)(request->constant_buffer.register_index%14);
 
@@ -1097,7 +1104,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				}
 			}break;
 
-			case CREATE_DYNAMIC_MESH:{
+			case ASSET_REQUEST_CREATE_DYNAMIC_MESH:{
 				u32 current_index = LIST_SIZE(meshes_list);
 				ASSERT(current_index < 0xffff);
 				*request->p_uid = (u16)current_index;
@@ -1265,14 +1272,13 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 		// |REQUEST_FLAG_SET_RENDER_TARGET_AND_DEPTH_STENCIL
 		{
 			
+			create_screen_render_target_view(dx, &screen_render_target->target_view);
+
 			Depth_stencil* depth_stencil; LIST_GET(depth_stencils_list, 0, depth_stencil);
 			// state can be null to set the default depth_stencil in 
 			dx->context->OMSetDepthStencilState(depth_stencil->state, 0);
 			
 			Dx11_render_target_view** rtviews_to_bind = ARENA_PUSH_STRUCT(temp_arena, Dx11_render_target_view*);
-			
-
-			create_screen_render_target_view(dx, &screen_render_target->target_view);
 			
 			rtviews_to_bind[0] = screen_render_target->target_view;
 
@@ -1428,6 +1434,20 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				ASSERTHR(hr);
 
 				create_screen_render_target_view(dx, &screen_render_target->target_view);
+				
+				Depth_stencil* resize_ds;
+				LIST_GET(depth_stencils_list, 0, resize_ds);
+				if(resize_ds->view)
+				{
+					resize_ds->view->Release();
+					resize_ds->view = 0;
+				}
+				dx11_create_depth_stencil_view(dx, &resize_ds->view, client_size.x, client_size.y);
+				dx->context->ClearDepthStencilView(
+					resize_ds->view,
+					D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
+					1.0f, 0
+				);
 
 			}
 		}
@@ -1955,6 +1975,18 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 
 		if(screen_render_target->target_view)
 		{		
+			{// setting default rtv and ds
+				Depth_stencil* depth_stencil; LIST_GET(depth_stencils_list, 0, depth_stencil);
+				// state can be null to set the default depth_stencil in 
+				dx->context->OMSetDepthStencilState(depth_stencil->state, 0);
+				
+				Dx11_render_target_view** rtviews_to_bind = ARENA_PUSH_STRUCT(temp_arena, Dx11_render_target_view*);
+				
+				rtviews_to_bind[0] = screen_render_target->target_view;
+
+				dx->context->OMSetRenderTargets(1, rtviews_to_bind, depth_stencil->view); 
+			}
+
 			dx->context->ClearRenderTargetView(render_targets_list[0]->target_view, (float*)&memory.bg_color);
 			
 			u32 counter = 0;
@@ -2071,7 +2103,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				}
 				if(request->type_flags & REQUEST_FLAG_RESIZE_TARGET_VIEW)
 				{	
-					// the screen rtv cannot be resized this way, and i already do it when the client size changes
+					// the screen rtv cannot be resized this way, and is already being done JUST when the client size changes
 					ASSERT(request->resize_rtv_uid != 0); 
 
 					Render_target* render_target;
@@ -2157,14 +2189,6 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				}
 				if(request->type_flags & REQUEST_FLAG_SET_SHADER_RESOURCE_FROM_RENDER_TARGET)
 				{
-					
-					// Dx11_texture_view* shader_resource_views [2] = {
-					// 	dx->render_target_texture_views_list[RTV_POSTPROCESSING], 
-					// 	dx->render_target_texture_views_list[RTV_DEPTH]};
-
-					// Dx11_texture_view** texture_to_set;
-					// LIST_GET(textures_list, request->set_shader_resource.texture_uid, texture_to_set);
-
 					Render_target* render_target_source;
 					LIST_GET(render_targets_list, request->set_shader_resource_from_rtv.rtv_uid, render_target_source);
 
