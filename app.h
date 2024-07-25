@@ -432,7 +432,7 @@ struct Renderer_request{
 	{
 		struct
 		{
-			u16 uid;
+			u16 register_index;
 			void* new_data;
 		}renderer_variable;
 		
@@ -580,7 +580,27 @@ struct Asset_request
 			u16 size;// constant buffer can't be bigger than 65536 (actually it can but it's complicated)
 		}constant_buffer;
 
-		Mesh_primitive mesh_primitives; 
+		union
+		{
+			Mesh_primitive mesh_primitives; 
+			struct 
+			{
+				// void* vertices;
+				void* unused3;
+				// u32 vertex_size;
+				u32 instance_size;
+				// u32 vertex_count;
+				u32 max_instances;
+
+				// u16* indices;
+				u16* unused1;
+				// u32 indices_count;
+				u32 unused2;
+				// u32 topology_uid;
+				u32 topology_uid;
+
+			}instancing_dynamic_mesh;
+		};
 		
 		Surface tex_surface;
 
@@ -1009,6 +1029,12 @@ get_pushed_instances_count(Memory_arena* temp_arena, Renderer_request* request)
 	u32 result = (u32)((temp_arena->data+temp_arena->used - (u8*)request->instancing_data.instances)/sizeof(Instance_data));
 	ASSERT(result < 0xffff);
 	return result;
+}
+
+internal V2
+size_in_pixels_to_screen(Int2 size, f32 aspect_ratio, Int2 viewport_size)
+{
+	return v2(aspect_ratio*(f32)size.x/viewport_size.x, (f32)size.x/viewport_size.y);
 }
 
 #endif

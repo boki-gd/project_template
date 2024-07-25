@@ -700,85 +700,86 @@ build_orthographic_matrix(f32 aspect_ratio, f32 height, f32 nearz, f32 farz)
    return matrix;
 }
 
-internal void
-build_orthographic_matrix_reference(f32 matrix[4][4], f32 aspect_ratio, f32 nearz, f32 farz)
-{aspect_ratio;
-   f32 left, right, top, bottom, width, height, depth;
+// i don't know what this is
+// internal void
+// build_orthographic_matrix_reference(f32 matrix[4][4], f32 aspect_ratio, f32 nearz, f32 farz)
+// {aspect_ratio;
+//    f32 left, right, top, bottom, width, height, depth;
 
-   left = -2;
-   right = 2;
-   top = 2;
-   bottom = -2;
+//    left = -2;
+//    right = 2;
+//    top = 2;
+//    bottom = -2;
 
-   width = right - left;
-   height =  top - bottom;
-   depth = farz - nearz;
-
-
-   // matrix[0][0]= width/2;
-   // matrix[0][1]= 0;
-   // matrix[0][2]= 0;
-   // matrix[0][3]= 0;
-   
-   // matrix[1][0]= 0;
-   // matrix[1][1]= height/2;
-   // matrix[1][2]= 0;
-   // matrix[1][3]= 0;
-   
-   // matrix[2][0]= 0;
-   // matrix[2][1]= 0;
-   // matrix[2][2]= depth/-2;
-   // matrix[2][3]= 0;
-   
-   // matrix[3][0]= (left+right)/2;
-   // matrix[3][1]= (top+bottom)/2;
-   // matrix[3][2]= -(farz+nearz)/2;
-   // matrix[3][3]= 1;
-
-   matrix[0][0]= 2/width;
-   matrix[0][1]= 0;
-   matrix[0][2]= 0;
-   matrix[0][3]= 0;
-   
-   matrix[1][0]= 0;
-   matrix[1][1]= 2/height;
-   matrix[1][2]= 0;
-   matrix[1][3]= 0;
-   
-   matrix[2][0]= 0;
-   matrix[2][1]= 0;
-   matrix[2][2]= -2/depth;
-   matrix[2][3]= 0;
-   
-   matrix[3][0]= -(right+left)/width;
-   matrix[3][1]= -(top+bottom)/height;
-   matrix[3][2]= -(farz+nearz)/depth;
-   matrix[3][3]= 1;
+//    width = right - left;
+//    height =  top - bottom;
+//    depth = farz - nearz;
 
 
-   // matrix[0][0]= 1.0f/aspect_ratio;
-   // matrix[0][1]= 0;
-   // matrix[0][2]= 0;
-   // matrix[0][3]= 0;
+//    // matrix[0][0]= width/2;
+//    // matrix[0][1]= 0;
+//    // matrix[0][2]= 0;
+//    // matrix[0][3]= 0;
    
-   // matrix[1][0]= 0;
-   // matrix[1][1]= 1.0f;
-   // matrix[1][2]= 0;
-   // matrix[1][3]= 0;
+//    // matrix[1][0]= 0;
+//    // matrix[1][1]= height/2;
+//    // matrix[1][2]= 0;
+//    // matrix[1][3]= 0;
    
-   // matrix[2][0]= 0;
-   // matrix[2][1]= 0;
-   // matrix[2][2]= -0.01f;
-   // // matrix[2][2]= farz/(farz-nearz);
-   // matrix[2][3]= 0;
+//    // matrix[2][0]= 0;
+//    // matrix[2][1]= 0;
+//    // matrix[2][2]= depth/-2;
+//    // matrix[2][3]= 0;
    
-   // matrix[3][0]= 0;
-   // matrix[3][1]= 0;
-   // matrix[3][2]= 0.01f;
-   // // matrix[3][2]= (-farz*nearz) / (farz-nearz);
-   // matrix[3][3]= 1.0f;
+//    // matrix[3][0]= (left+right)/2;
+//    // matrix[3][1]= (top+bottom)/2;
+//    // matrix[3][2]= -(farz+nearz)/2;
+//    // matrix[3][3]= 1;
 
-}
+//    matrix[0][0]= 2/width;
+//    matrix[0][1]= 0;
+//    matrix[0][2]= 0;
+//    matrix[0][3]= 0;
+   
+//    matrix[1][0]= 0;
+//    matrix[1][1]= 2/height;
+//    matrix[1][2]= 0;
+//    matrix[1][3]= 0;
+   
+//    matrix[2][0]= 0;
+//    matrix[2][1]= 0;
+//    matrix[2][2]= -2/depth;
+//    matrix[2][3]= 0;
+   
+//    matrix[3][0]= -(right+left)/width;
+//    matrix[3][1]= -(top+bottom)/height;
+//    matrix[3][2]= -(farz+nearz)/depth;
+//    matrix[3][3]= 1;
+
+
+//    // matrix[0][0]= 1.0f/aspect_ratio;
+//    // matrix[0][1]= 0;
+//    // matrix[0][2]= 0;
+//    // matrix[0][3]= 0;
+   
+//    // matrix[1][0]= 0;
+//    // matrix[1][1]= 1.0f;
+//    // matrix[1][2]= 0;
+//    // matrix[1][3]= 0;
+   
+//    // matrix[2][0]= 0;
+//    // matrix[2][1]= 0;
+//    // matrix[2][2]= -0.01f;
+//    // // matrix[2][2]= farz/(farz-nearz);
+//    // matrix[2][3]= 0;
+   
+//    // matrix[3][0]= 0;
+//    // matrix[3][1]= 0;
+//    // matrix[3][2]= 0.01f;
+//    // // matrix[3][2]= (-farz*nearz) / (farz-nearz);
+//    // matrix[3][3]= 1.0f;
+
+// }
 
 internal Matrix
 matrix_translation(V3 v)

@@ -1316,14 +1316,10 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 		{
          Matrix view_matrices[2] = {0};
          
-         Quaternion camera_rotation = quaternion_transform_globally(
-            create_quaternion({1,0,0}, 0),
-            create_quaternion({0,1,0}, 0)
-         );
          view_matrices[0] = 
             matrix_translation( v3(0,0,0) )
             *
-            matrix_from_quaternion(quaternion_invert(camera_rotation))
+            matrix_from_quaternion(quaternion_invert(UNIT_QUATERNION))
          ;//WORLD VIEW MATRIX
          
          // WORLD PROJECTION
@@ -1344,7 +1340,13 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 
 	while(!memory.close_app)
 	{
-		arena_pop_back_size(temp_arena, temp_arena->used);
+		// arena_pop_back_size(temp_arena, temp_arena->used);
+
+		// THIS IS FASTER THAN MANUALLY CLEARING THE ARENA (at least with -Od, haven't compared with -O2)
+		VirtualFree(temp_arena->data, 0, MEM_RELEASE);
+		temp_arena->data = (u8*)VirtualAlloc(0, temp_arena->size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+		temp_arena->used = 0;
+		
 		u8 pressed_keys [INPUT_COUNT]= {0};
 		
 		
@@ -2178,9 +2180,9 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				if(request->type_flags & REQUEST_FLAG_MODIFY_RENDERER_VARIABLE)
 				{
 					dx11_modify_resource(dx, 
-						renderer_variables[request->renderer_variable.uid].buffer, 
+						renderer_variables[request->renderer_variable.register_index].buffer, 
 						request->renderer_variable.new_data, 
-						renderer_variables[request->renderer_variable.uid].size
+						renderer_variables[request->renderer_variable.register_index].size
 						);
 				}
 				if(request->type_flags & REQUEST_FLAG_CHANGE_VIEWPORT_SIZE)

@@ -182,6 +182,11 @@ int2(int a, int b)
 {
     return {a, b};
 }
+internal Int2
+v2_to_int2(V2 v)
+{
+    return {(int)v.x, (int)v.y};
+}
 
 internal Int2
 int2_addition(Int2 a, Int2 b)
@@ -991,7 +996,12 @@ f32_ease_in_out_quad(f32 t)
 }
 
 internal f32
-sample_2d_perlin_noise(float* noisemap, int width, int height, int x, int y, u32 max_iterations, int initial_sample_resolution, float influence_step_multiplier)
+sample_2d_perlin_noise(float* noisemap, 
+    int width, int height, int x, int y, 
+    u32 max_iterations, //default 8
+    int initial_sample_resolution, // default 2 and a multiple of 2
+    float influence_step_multiplier // default .5f
+    )
 {
     float amplitude = 1.0f;
 

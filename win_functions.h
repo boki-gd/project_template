@@ -389,10 +389,10 @@ win_load_game_dll(char* dll_name, FILETIME* out_dll_last_write_time)
 		concat_char_strings(dll_name, "_temp.dll", temp_dll_name);
 		
 		#if DEBUGMODE	
-		CopyFile(dll_name, temp_dll_name, FALSE);
-		HMODULE result = LoadLibraryA(temp_dll_name);
+			CopyFile(dll_name, temp_dll_name, FALSE);
+			HMODULE result = LoadLibraryA(temp_dll_name);
 		#else
-		HMODULE result = LoadLibraryA(dll_name);
+			HMODULE result = LoadLibraryA(dll_name);
 
 		#endif
 
