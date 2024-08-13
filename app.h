@@ -765,8 +765,14 @@ push_asset_sound_request(Asset_request* request, Memory_arena* arena, String fil
 
 // shorthand for pushing a Renderer_request to the render_list assuming there is a Renderer_request* named request
 #define PUSH_BACK_RENDER_REQUEST(render_list) \
-   ASSERT(!request || request->type_flags != REQUEST_FLAG_RENDER_OBJECT || (request->color.a && request->scale.x && request->scale.y && request->scale.z));\
-   PUSH_BACK(render_list, memory->temp_arena, request)
+   ASSERT(!request \
+	|| request->type_flags != REQUEST_FLAG_RENDER_OBJECT \
+	|| (request->color.a && request->scale.x && request->scale.y && request->scale.z)\
+	);\
+	if(!request || !(request->type_flags & REQUEST_FLAG_RENDER_INSTANCES && request->instancing_data.instances_count == 0)) \
+		PUSH_BACK(render_list, memory->temp_arena, request)\
+	else\
+		*request = {0};
 
 
 
@@ -1034,7 +1040,17 @@ get_pushed_instances_count(Memory_arena* temp_arena, Renderer_request* request)
 internal V2
 size_in_pixels_to_screen(Int2 size, f32 aspect_ratio, Int2 viewport_size)
 {
-	return v2(aspect_ratio*(f32)size.x/viewport_size.x, (f32)size.x/viewport_size.y);
+	return v2(2*aspect_ratio*(f32)size.x/viewport_size.x, 2*(f32)size.y/viewport_size.y);
+}
+
+internal Matrix
+pos_scale_rot_to_transform_matrix(V3 pos, V3 scale, Quaternion rot)
+{
+	return 
+		matrix_from_quaternion(rot)*
+		matrix_scale(scale)*
+		matrix_translation(pos)
+	;
 }
 
 #endif

@@ -1243,7 +1243,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 		memory.keyboard_repeat_cooldown = 1 / keyboard_repeat_rate;
 	}
 	
-   // PREPARING FOR RENDERING THIS FRAME
+   // PRE-PARING FOR RENDERING THIS FRAME
    {		
 		// |REQUEST_FLAG_SET_PS
 		{
@@ -1342,7 +1342,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 	{
 		// arena_pop_back_size(temp_arena, temp_arena->used);
 
-		// THIS IS FASTER THAN MANUALLY CLEARING THE ARENA (at least with -Od, haven't compared with -O2)
+		// THIS IS (A LOT!!) FASTER THAN MANUALLY CLEARING THE ARENA (at least with -Od, haven't compared with -O2)
 		VirtualFree(temp_arena->data, 0, MEM_RELEASE);
 		temp_arena->data = (u8*)VirtualAlloc(0, temp_arena->size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
 		temp_arena->used = 0;
