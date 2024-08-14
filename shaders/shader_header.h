@@ -11,10 +11,13 @@ cbuffer object_buffer : register(b0)
 cbuffer projection_view_buffer : register(b1)
 {
 	matrix world_view_matrix;
+};
+cbuffer projection_view_buffer : register(b2)
+{
 	matrix projection_matrix;
 };
 
-cbuffer camera_pos_buffer : register(b2){
+cbuffer camera_pos_buffer : register(b3){
 	float4 camera_pos;
 	// float3 camera_pos;
 	// float depth_writing;
@@ -23,7 +26,7 @@ cbuffer camera_pos_buffer : register(b2){
 
 static const int WEIGHTS_PER_VERTEX = 3;
 static const uint MAX_BONE_COUNT = 100;
-cbuffer bone_transforms_buffer : register(b3)
+cbuffer bone_transforms_buffer : register(b4)
 {
 	float4x4 bone_transforms [MAX_BONE_COUNT];
 }

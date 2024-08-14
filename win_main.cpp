@@ -255,8 +255,13 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 
 		PUSH_BACK(init_data.asset_requests, memory.temp_arena, request);
       request->type = ASSET_REQUEST_CREATE_CONSTANT_BUFFER;
-      request->constant_buffer.register_index = REGISTER_INDEX_VS_PROJECTION_AND_WORLD_VIEW;
-      request->constant_buffer.size = 2*sizeof(Matrix);
+      request->constant_buffer.register_index = REGISTER_INDEX_VS_PROJECTION_MATRIX;
+      request->constant_buffer.size = sizeof(Matrix);
+
+		PUSH_BACK(init_data.asset_requests, memory.temp_arena, request);
+      request->type = ASSET_REQUEST_CREATE_CONSTANT_BUFFER;
+      request->constant_buffer.register_index = REGISTER_INDEX_VS_WORLD_VIEW_MATRIX;
+      request->constant_buffer.size = sizeof(Matrix);
 
 		PUSH_BACK(init_data.asset_requests, memory.temp_arena, request);
       request->type = ASSET_REQUEST_CREATE_CONSTANT_BUFFER;
@@ -1314,25 +1319,26 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 
 		// |REQUEST_FLAG_MODIFY_RENDERER_VARIABLE
 		{
-         Matrix view_matrices[2] = {0};
-         
-         view_matrices[0] = 
-            matrix_translation( v3(0,0,0) )
-            *
-            matrix_from_quaternion(quaternion_invert(UNIT_QUATERNION))
-         ;//WORLD VIEW MATRIX
+			//WORLD VIEW MATRIX
+         Matrix world_view = matrix_translation( v3(0,0,0) );
          
          // WORLD PROJECTION
+			Matrix projection;
          if(memory.perspective_on){
-            view_matrices[1] = build_perspective_matrix(memory.aspect_ratio, memory.fov, 0.1f, 500.0f, memory.depth_effect);
+            projection = build_perspective_matrix(memory.aspect_ratio, memory.fov, 0.1f, 500.0f, memory.depth_effect);
          }else{         
-            view_matrices[1] = build_orthographic_matrix(memory.aspect_ratio, 2.0f, 0.001f, 100.0f);
+            projection = build_orthographic_matrix(memory.aspect_ratio, 2.0f, 0.001f, 100.0f);
          }		
 
 			dx11_modify_resource(dx, 
-				renderer_variables[REGISTER_INDEX_VS_PROJECTION_AND_WORLD_VIEW].buffer, 
-				view_matrices, 
-				renderer_variables[REGISTER_INDEX_VS_PROJECTION_AND_WORLD_VIEW].size
+				renderer_variables[REGISTER_INDEX_VS_WORLD_VIEW_MATRIX].buffer, 
+				&world_view, 
+				renderer_variables[REGISTER_INDEX_VS_WORLD_VIEW_MATRIX].size
+			);
+			dx11_modify_resource(dx, 
+				renderer_variables[REGISTER_INDEX_VS_PROJECTION_MATRIX].buffer, 
+				&projection, 
+				renderer_variables[REGISTER_INDEX_VS_PROJECTION_MATRIX].size
 			);
 		}
    }
