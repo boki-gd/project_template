@@ -1766,12 +1766,13 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 
 						}
 
-						// b32 AltKeyWasDown = ((msg.lParam & (1 << 29)));
-						// if ((vkcode == VK_F4) && AltKeyWasDown)
-						// 	memory.close_app = true;
 					}
-					TranslateMessage(&msg);
-					DispatchMessage(&msg);
+					b32 AltKeyWasDown = ((msg.lParam & (1 << 29)));
+					if (!AltKeyWasDown || (vkcode == VK_F4))
+					{
+						TranslateMessage(&msg);
+						DispatchMessage(&msg);
+					}
 				}break;
 				case WM_CHAR:
 				{
