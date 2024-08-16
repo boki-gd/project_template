@@ -341,7 +341,7 @@ struct Platform_data
 internal u16
 get_next_available_index(u8* array, u32 arraylen, u16* last_used_index)
 {
-	ASSERT(arraylen < 0xffff);
+	ASSERT(arraylen <= 0xffff);
 	u16 temp = 0;
 	if(!last_used_index)
 	{
