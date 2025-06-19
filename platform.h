@@ -501,7 +501,7 @@ enum Shader_constant_buffer_register_index : u16
 };
 
 //@@bitwise_enum@@
-enum RENDERER_REQUEST_TYPE_FLAGS
+enum RENDERER_REQUEST_TYPE_FLAGS : u64
 {
 	REQUEST_FLAG_RENDER_OBJECT = 0b1,
 	REQUEST_FLAG_RENDER_INSTANCES = 0b10,
@@ -523,7 +523,10 @@ enum RENDERER_REQUEST_TYPE_FLAGS
 	REQUEST_FLAG_CLEAR_RTV = 0b100000000000000000,
 	
 	// REQUEST_FLAG_POSTPROCESSING = 0b100,
+	// REQUEST_FLAG_NULL = 0b1000000000000000000000000000000000000000000000000000000000000000,
+	REQUEST_FLAG_NULL = 0b10000000000000000000000000000000,
 };
+
 
 struct Renderer_request{
 	u32 type_flags;
@@ -543,7 +546,7 @@ struct Renderer_request{
 			Instance_data* instances;
 			b8 flip_h;
 
-			u32 instances_count;//THIS IS JUST TEMPORAL
+			u32 instances_count;//THIS IS JUST TEMPORAL. what did I meant by that???
 		}instancing_data;
 	};
 	struct
@@ -612,6 +615,8 @@ struct Renderer_request{
 		
 	};
 };
+#define CALCULATE_INSTANCES_COUNT (u16)((temp_arena->data+temp_arena->used - (u8*)request->instancing_data.instances)/sizeof(Instance_data))
+
 
 struct Sound_playback_request
 {

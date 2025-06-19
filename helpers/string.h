@@ -107,10 +107,16 @@ find_substring(String str, String substr){
 	return -1;
 }
 
-internal char
-char_to_number(char c)
+internal u8
+char_to_u8(char c)
 {
-    return c - 48;
+   return c - '0';
+}
+
+internal char
+u8_to_char(u8 n)
+{
+	return n + '0';
 }
 
 internal s32
@@ -128,7 +134,7 @@ string_to_int(String s)
 	s32 power_of_10 = 1;
 	for(s32 i = s.length-1; bigger_digit_pos <= i ; i--)
 	{
-		char digit = char_to_number(s.text[i]);
+		u8 digit = char_to_u8(s.text[i]);
 		result += digit*power_of_10;
 		power_of_10 *= 10;
 	}
