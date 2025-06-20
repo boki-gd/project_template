@@ -13,8 +13,11 @@
 // STB LIBRARIES
 //TODO: assets will use my own format so in the future use this just to convert image formats
 #define STB_IMAGE_IMPLEMENTATION
-#define STBI_ONLY_PNG
+#define STBI_WINDOWS_UTF8
+#pragma warning(push)
+#pragma warning(disable: 4244)
 #include "libraries/stb_image.h"
+#pragma warning(pop)
 
 #define STB_RECT_PACK_IMPLEMENTATION
 #include "libraries/stb_rect_pack.h"
@@ -147,6 +150,29 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 
 	memory.win_time.get_current_date = &win_get_current_date;
 	memory.win_time.offset_date_by_days = &win_offset_date_by_days;
+
+	// TESTING THAT stbi_load CAN OPEN A UNICODE NAMED FILE WITH utf8
+
+	// DEFINE_LIST(Filename, filenames);
+	// String folder_name = string("photos/");
+	// win_list_all_files(folder_name, filenames, memory.temp_arena);
+
+	// // char* a="Screenshot 2024-09-26 at 14-14-28 Mikan ☆♪ みかん (@mikan.mandarin) • Instagram photos and videos.png";
+	// // b32 does_it = win_file_exists(a);
+
+	// FOREACH(Filename, current_filename, filenames)
+	// {
+	// 	if(current_filename->is_folder) continue;
+
+	// 	String full_path = concat_strings(folder_name, current_filename->name, memory.temp_arena);
+	// 	// File_data file_data = win_read_file(full_path, memory.temp_arena);
+	// 	int width, height, comp;
+	// 	void* data = stbi_load(full_path.text, &width, &height, &comp, STBI_rgb_alpha);
+	// 	const char* huh = stbi_failure_reason();
+	// 	ASSERT(data);
+	// 	ASSERT(win_file_exists(full_path.text));
+
+	// }
 
 	{
 		Asset_request* request;
@@ -583,7 +609,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 	Render_target* screen_render_target;
 	PUSH_BACK(render_targets_list, assets_arena, screen_render_target);
 
-	// this is so that when i use the index 0 for the REQUEST_FLAG_SET_SHADER_RESOURCE_FROM_RENDER_TARGET
+	// this is so that when i use the index 0 for the RENDER_REQUEST_SET_SHADER_RESOURCE_FROM_RENDER_TARGET
 	// the texture_view pointer will be a 0 so that means unset the resource
 	screen_render_target->texture_view = ARENA_PUSH_STRUCT(assets_arena, Dx11_texture_view*);
 
@@ -687,46 +713,46 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 
 		request->type_flags = 0;
 		
-		request->type_flags |= REQUEST_FLAG_SET_PS;
+		request->type_flags |= RENDER_REQUEST_SET_PS;
 		{
 			request->pshader_uid = 0;
 		}
 
-		request->type_flags |= REQUEST_FLAG_SET_VS;
+		request->type_flags |= RENDER_REQUEST_SET_VS;
 		{
 			request->vshader_uid = 0;
 		}
 
-		request->type_flags |= REQUEST_FLAG_RESIZE_DEPTH_STENCIL_VIEW;
-		request->type_flags |= REQUEST_FLAG_CHANGE_VIEWPORT_SIZE;
+		request->type_flags |= RENDER_REQUEST_RESIZE_DEPTH_STENCIL_VIEW;
+		request->type_flags |= RENDER_REQUEST_CHANGE_VIEWPORT_SIZE;
 		{
 			request->resize_depth_stencil_view_uid = 0;
 			request->new_viewport_size = client_size;
 		}	
 
-		request->type_flags |= REQUEST_FLAG_SET_RENDER_TARGET_AND_DEPTH_STENCIL;
+		request->type_flags |= RENDER_REQUEST_SET_RENDER_TARGET_AND_DEPTH_STENCIL;
 		{			
 			request->set_depth_stencil_uid = 0;
 			request->set_rtv_count = 1;
 			request->set_rtv_uids = ARENA_PUSH_STRUCT(temp_arena, u16);
 		}
-		// |REQUEST_FLAG_RESIZE_TARGET_VIEW
+		// |RENDER_REQUEST_RESIZE_TARGET_VIEW
 		{
 			
 		}
-		request->type_flags |= REQUEST_FLAG_SET_RASTERIZER_STATE;
+		request->type_flags |= RENDER_REQUEST_SET_RASTERIZER_STATE;
 		{
 			request->rasterizer_state.fill_mode = FILL_MODE_SOLID;
 			request->rasterizer_state.cull_mode = CULL_MODE_NONE;
 		}
 
-		request->type_flags |= REQUEST_FLAG_SET_BLEND_STATE;
+		request->type_flags |= RENDER_REQUEST_SET_BLEND_STATE;
 		{
 			request->blend_state_uid = 0;
 		}
 
 		PUSH_BACK(render_list, temp_arena, request);
-		request->type_flags = REQUEST_FLAG_MODIFY_RENDERER_VARIABLE;
+		request->type_flags = RENDER_REQUEST_MODIFY_RENDERER_VARIABLE;
 
 		//WORLD VIEW MATRIX
 		{
@@ -736,7 +762,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
          *world_view = matrix_translation( v3(0,0,0) );
 		}
 		PUSH_BACK(render_list, temp_arena, request);
-		request->type_flags = REQUEST_FLAG_MODIFY_RENDERER_VARIABLE;
+		request->type_flags = RENDER_REQUEST_MODIFY_RENDERER_VARIABLE;
 		// WORLD PROJECTION
 		{
 			request->renderer_variable.register_index = REGISTER_INDEX_VS_PROJECTION_MATRIX;
@@ -1427,7 +1453,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				count++;
 
 
-				if(request->type_flags & REQUEST_FLAG_MODIFY_DYNAMIC_MESH)
+				if(request->type_flags & RENDER_REQUEST_MODIFY_DYNAMIC_MESH)
 				{
 					Dx_mesh* modify_mesh;
 					LIST_GET(meshes_list, request->modified_mesh.mesh_uid, modify_mesh);
@@ -1441,8 +1467,8 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 							request->modified_mesh.indices_count * sizeof(u16));
 					}
 					ASSERT(true);
-				}// TODO: UNIFY THIS 2 FLAGS INTO "REQUEST_FLAG_MODIFY_DYNAMIC_RESOURCE"
-				if(request->type_flags & REQUEST_FLAG_MODIFY_DYNAMIC_TEXTURE) 
+				}// TODO: UNIFY THIS 2 FLAGS INTO "RENDER_REQUEST_MODIFY_DYNAMIC_RESOURCE"
+				if(request->type_flags & RENDER_REQUEST_MODIFY_DYNAMIC_TEXTURE) 
 				{
 					ID3D11Resource* modify_texture;
 					Dx11_texture_view** texture_view;
@@ -1466,7 +1492,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 						);
 					modify_texture->Release();
 				}
-				if(request->type_flags & REQUEST_FLAG_SET_SHADER_RESOURCE_FROM_TEXTURE)
+				if(request->type_flags & RENDER_REQUEST_SET_SHADER_RESOURCE_FROM_TEXTURE)
 				{
 					Dx11_texture_view** texture_view; 
 					if(request->set_shader_resource_from_texture.tex_uid != NULL_INDEX16){
@@ -1476,7 +1502,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 					}
 					dx->context->PSSetShaderResources(request->set_shader_resource_from_texture.target_index, 1, texture_view);
 				}
-				if(request->type_flags & REQUEST_FLAG_RESIZE_DEPTH_STENCIL_VIEW)
+				if(request->type_flags & RENDER_REQUEST_RESIZE_DEPTH_STENCIL_VIEW)
 				{
 					Depth_stencil* resize_ds;
 					LIST_GET(depth_stencils_list, request->resize_depth_stencil_view_uid, resize_ds);
@@ -1494,26 +1520,26 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 						1.0f, 0
 					);
 				}
-				if(request->type_flags & REQUEST_FLAG_SET_VS)
+				if(request->type_flags & RENDER_REQUEST_SET_VS)
 				{
 					Vertex_shader* vertex_shader; LIST_GET(vertex_shaders_list, request->vshader_uid, vertex_shader);
 
 					dx->context->VSSetShader(vertex_shader->shader, 0, 0);
 					dx->context->IASetInputLayout(vertex_shader->input_layout);
 				}
-				if(request->type_flags & REQUEST_FLAG_SET_PS)
+				if(request->type_flags & RENDER_REQUEST_SET_PS)
 				{
 					Pixel_shader* pixel_shader; LIST_GET(pixel_shaders_list, request->pshader_uid, pixel_shader);
 					dx->context->PSSetShader(pixel_shader->shader, 0, 0);
 				}
-				if(request->type_flags & REQUEST_FLAG_SET_BLEND_STATE)
+				if(request->type_flags & RENDER_REQUEST_SET_BLEND_STATE)
 				{
 					Dx11_blend_state** blend_state; LIST_GET(blend_states_list, request->blend_state_uid, blend_state);
 					
 					// float blend_factor [4] = {0.0f,0.0f,0.0f,1.0f};
 					dx->context->OMSetBlendState(*blend_state, 0, ~0U);   
 				}
-				if(request->type_flags & REQUEST_FLAG_RESIZE_TARGET_VIEW)
+				if(request->type_flags & RENDER_REQUEST_RESIZE_TARGET_VIEW)
 				{	
 					// the screen rtv cannot be resized this way, and is already being done JUST when the client size changes
 					ASSERT(request->resize_rtv_uid != 0); 
@@ -1568,7 +1594,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 					dx->device->CreateShaderResourceView(render_target->texture, 
 						&srvd, texture_view);
 				}
-				if(request->type_flags & REQUEST_FLAG_SET_RENDER_TARGET_AND_DEPTH_STENCIL)
+				if(request->type_flags & RENDER_REQUEST_SET_RENDER_TARGET_AND_DEPTH_STENCIL)
 				{
 					Depth_stencil* depth_stencil; LIST_GET(depth_stencils_list, request->set_depth_stencil_uid, depth_stencil);
 					// state can be null to set the default depth_stencil in 
@@ -1587,7 +1613,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 					}
 					dx->context->OMSetRenderTargets(request->set_rtv_count, rtviews_to_bind, depth_stencil->view); 
 				}
-				if(request->type_flags & REQUEST_FLAG_MODIFY_RENDERER_VARIABLE)
+				if(request->type_flags & RENDER_REQUEST_MODIFY_RENDERER_VARIABLE)
 				{
 					dx11_modify_resource(dx, 
 						renderer_variables[request->renderer_variable.register_index].buffer, 
@@ -1595,11 +1621,11 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 						renderer_variables[request->renderer_variable.register_index].size
 					);
 				}
-				if(request->type_flags & REQUEST_FLAG_CHANGE_VIEWPORT_SIZE)
+				if(request->type_flags & RENDER_REQUEST_CHANGE_VIEWPORT_SIZE)
 				{
 					dx11_set_viewport(dx, 0, 0, request->new_viewport_size.x, request->new_viewport_size.y);
 				}
-				if(request->type_flags & REQUEST_FLAG_SET_SHADER_RESOURCE_FROM_RENDER_TARGET)
+				if(request->type_flags & RENDER_REQUEST_SET_SHADER_RESOURCE_FROM_RENDER_TARGET)
 				{
 					Render_target* render_target_source;
 					LIST_GET(render_targets_list, request->set_shader_resource_from_rtv.rtv_uid, render_target_source);
@@ -1607,7 +1633,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 					dx->context->PSSetShaderResources(request->set_shader_resource_from_rtv.target_index,1, render_target_source->texture_view);
 					ASSERT(true);	
 				}
-				if(request->type_flags & REQUEST_FLAG_SET_RASTERIZER_STATE)
+				if(request->type_flags & RENDER_REQUEST_SET_RASTERIZER_STATE)
 				{
 					dx->rasterizer_state->Release();
 					global_rasterizer_desc.FillMode = fill_modes_list[request->rasterizer_state.fill_mode];
@@ -1618,11 +1644,11 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 
 					ASSERTHR(hr);
 				}
-				if(request->type_flags & REQUEST_FLAG_SET_SAMPLER)
+				if(request->type_flags & RENDER_REQUEST_SET_SAMPLER)
 				{
 					ASSERT(false);
 				}
-				if(request->type_flags & REQUEST_FLAG_CLEAR_RTV)
+				if(request->type_flags & RENDER_REQUEST_CLEAR_RTV)
 				{
 					Render_target* rtv_to_clear;
 					LIST_GET(render_targets_list, request->clear_rtv.uid, rtv_to_clear);
@@ -1634,7 +1660,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				// RENDERING CALLS
 
 
-				if(request->type_flags & REQUEST_FLAG_RENDER_OBJECT)
+				if(request->type_flags & RENDER_REQUEST_RENDER_OBJECT)
 				{	
 					Object3d* object = &request->object3d;
 					ASSERT(object->color.a); // FORGOR TO SET THE COLOR
@@ -1675,7 +1701,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 					dx11_draw_mesh(dx, object_mesh);
 					ASSERT(true);
 				}				
-				else if(request->type_flags & REQUEST_FLAG_RENDER_INSTANCES)
+				else if(request->type_flags & RENDER_REQUEST_RENDER_INSTANCES)
 				{
 					ASSERT(request->instancing_data.instances_count);
 					Tex_info* texinfo; 
@@ -1709,7 +1735,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 
 					dx->context->DrawIndexedInstanced(vertices_mesh->indices_count, request->instancing_data.instances_count, 0, 0, 0);
 				}
-				// else if(request->type_flags & REQUEST_FLAG_POSTPROCESSING) // POST PROCESSING EFFECTS
+				// else if(request->type_flags & RENDER_REQUEST_POSTPROCESSING) // POST PROCESSING EFFECTS
 				// {					
 				// 	// dx->context->OMSetRenderTargets(1, &dx->render_target_views_list[RTV_SCREEN], 0); 
 				// 	// dx11_bind_render_target_view(dx, &dx->render_[0], aux_depth_stencil->view);

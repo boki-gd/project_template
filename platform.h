@@ -340,11 +340,12 @@ struct Asset_request
 		u32 sound_uid;
 		u16* font_uid;
 	};
+	String filename; 
 	union
 	{
 		struct 
-		{ // this is for vertex shader
-			String filename;
+		{
+			// this is for vertex shader
 			Input_element_desc ied; // input_element_desc
 			f32 font_lines_height;
 		};
@@ -503,28 +504,28 @@ enum Shader_constant_buffer_register_index : u16
 //@@bitwise_enum@@
 enum RENDERER_REQUEST_TYPE_FLAGS : u64
 {
-	REQUEST_FLAG_RENDER_OBJECT = 0b1,
-	REQUEST_FLAG_RENDER_INSTANCES = 0b10,
+	RENDER_REQUEST_RENDER_OBJECT = 0b1,
+	RENDER_REQUEST_RENDER_INSTANCES = 0b10,
 
-	REQUEST_FLAG_CHANGE_VIEWPORT_SIZE = 0b1000,
-	REQUEST_FLAG_MODIFY_RENDERER_VARIABLE = 0b10000,
-	REQUEST_FLAG_RESIZE_DEPTH_STENCIL_VIEW = 0b100000,
-	REQUEST_FLAG_MODIFY_DYNAMIC_MESH = 0b1000000,
-	REQUEST_FLAG_MODIFY_DYNAMIC_TEXTURE = 0b10000000,
-	REQUEST_FLAG_SET_SHADER_RESOURCE_FROM_TEXTURE = 0b100000000,
-	REQUEST_FLAG_SET_VS = 0b1000000000,
-	REQUEST_FLAG_SET_PS = 0b10000000000,
-	REQUEST_FLAG_RESIZE_TARGET_VIEW = 0b100000000000,
-	REQUEST_FLAG_SET_BLEND_STATE = 0b1000000000000,
-	REQUEST_FLAG_SET_RENDER_TARGET_AND_DEPTH_STENCIL = 0b10000000000000,
-	REQUEST_FLAG_SET_SHADER_RESOURCE_FROM_RENDER_TARGET = 0b100000000000000,
-	REQUEST_FLAG_SET_RASTERIZER_STATE = 0b1000000000000000,
-	REQUEST_FLAG_SET_SAMPLER = 0b10000000000000000,
-	REQUEST_FLAG_CLEAR_RTV = 0b100000000000000000,
+	RENDER_REQUEST_CHANGE_VIEWPORT_SIZE = 0b1000,
+	RENDER_REQUEST_MODIFY_RENDERER_VARIABLE = 0b10000,
+	RENDER_REQUEST_RESIZE_DEPTH_STENCIL_VIEW = 0b100000,
+	RENDER_REQUEST_MODIFY_DYNAMIC_MESH = 0b1000000,
+	RENDER_REQUEST_MODIFY_DYNAMIC_TEXTURE = 0b10000000,
+	RENDER_REQUEST_SET_SHADER_RESOURCE_FROM_TEXTURE = 0b100000000,
+	RENDER_REQUEST_SET_VS = 0b1000000000,
+	RENDER_REQUEST_SET_PS = 0b10000000000,
+	RENDER_REQUEST_RESIZE_TARGET_VIEW = 0b100000000000,
+	RENDER_REQUEST_SET_BLEND_STATE = 0b1000000000000,
+	RENDER_REQUEST_SET_RENDER_TARGET_AND_DEPTH_STENCIL = 0b10000000000000,
+	RENDER_REQUEST_SET_SHADER_RESOURCE_FROM_RENDER_TARGET = 0b100000000000000,
+	RENDER_REQUEST_SET_RASTERIZER_STATE = 0b1000000000000000,
+	RENDER_REQUEST_SET_SAMPLER = 0b10000000000000000,
+	RENDER_REQUEST_CLEAR_RTV = 0b100000000000000000,
 	
-	// REQUEST_FLAG_POSTPROCESSING = 0b100,
-	// REQUEST_FLAG_NULL = 0b1000000000000000000000000000000000000000000000000000000000000000,
-	REQUEST_FLAG_NULL = 0b10000000000000000000000000000000,
+	// RENDER_REQUEST_POSTPROCESSING = 0b100,
+	// RENDER_REQUEST_NULL = 0b1000000000000000000000000000000000000000000000000000000000000000,
+	RENDER_REQUEST_NULL = 0b10000000000000000000000000000000,
 };
 
 
@@ -765,10 +766,10 @@ push_asset_sound_request(Asset_request* request, Memory_arena* arena, String fil
 // shorthand for pushing a Renderer_request to the render_list assuming there is a Renderer_request* named request
 #define PUSH_BACK_RENDER_REQUEST(render_list) \
    ASSERT(!request \
-	|| request->type_flags != REQUEST_FLAG_RENDER_OBJECT \
+	|| request->type_flags != RENDER_REQUEST_RENDER_OBJECT \
 	|| (request->color.a && request->scale.x && request->scale.y && request->scale.z)\
 	);\
-	if(!request || !(request->type_flags & REQUEST_FLAG_RENDER_INSTANCES && request->instancing_data.instances_count == 0)) \
+	if(!request || !(request->type_flags & RENDER_REQUEST_RENDER_INSTANCES && request->instancing_data.instances_count == 0)) \
 		PUSH_BACK(render_list, memory->temp_arena, request)\
 	else\
 		*request = {0};
@@ -800,7 +801,7 @@ render_char(Platform_data* memory, Font* font, u8 character,  Int2 char_pos, u32
 	if(char_final_size.x && char_final_size.y && FIRST_CHAR < character && character < LAST_CHAR )
 	{  
 		PUSH_BACK_RENDER_REQUEST(render_list);
-		request->type_flags = REQUEST_FLAG_RENDER_OBJECT;
+		request->type_flags = RENDER_REQUEST_RENDER_OBJECT;
 		request->object3d.fill(
 			plane_mesh_uid,
 			font->texinfo_uids[character_font_index],
@@ -817,7 +818,7 @@ render_char(Platform_data* memory, Font* font, u8 character,  Int2 char_pos, u32
 		if(character != ' ')
 		{
 			PUSH_BACK_RENDER_REQUEST(render_list);
-			request->type_flags = REQUEST_FLAG_RENDER_OBJECT;
+			request->type_flags = RENDER_REQUEST_RENDER_OBJECT;
 			request->object3d.fill(
 				plane_mesh_uid,
 				0,
@@ -876,7 +877,7 @@ instance_char(Platform_data* memory, Font* font, u8 character,  Int2 char_pos, u
 			char_width;
 
 			// PUSH_BACK_RENDER_REQUEST(render_list);
-			// request->type_flags = REQUEST_FLAG_RENDER_OBJECT;
+			// request->type_flags = RENDER_REQUEST_RENDER_OBJECT;
 			// request->object3d.fill(
 			// 	plane_mesh_uid,
 			// 	*assets->textures.white_tex,

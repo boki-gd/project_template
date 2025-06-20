@@ -33,38 +33,72 @@
 	
 */
 
+internal u32
+win_wchar_to_utf8(wchar_t* wchar_string, char* utf8_buffer, u32 buffer_size)
+{
+	return WideCharToMultiByte(CP_UTF8, 
+		WC_ERR_INVALID_CHARS|WC_NO_BEST_FIT_CHARS,
+		wchar_string,
+		-1,
+		utf8_buffer,
+		buffer_size,
+		0,
+		0
+	);
+}
+
+internal u32
+win_utf8_to_wchar(char* utf8_string, wchar_t* wchar_buffer, u32 buffer_size)
+{
+	return MultiByteToWideChar(
+		CP_UTF8, 
+		MB_ERR_INVALID_CHARS,
+		utf8_string,
+		-1,
+		wchar_buffer,
+		buffer_size
+	);
+}
+
 internal String
 win_get_current_directory(Memory_arena* arena)
 {
 	String result;
-	char temp_buffer [MAX_PATH] = {0}; 
+	wchar_t wchar_buffer [MAX_PATH] = {0}; 
 	
-	result.length = GetCurrentDirectoryA(MAX_PATH, temp_buffer);
+	result.length = GetCurrentDirectoryW(MAX_PATH, wchar_buffer);
 	ASSERT(result.length);
 	
 	// converting \\ to /
 	UNTIL(char_i, result.length)
 	{
-		if(temp_buffer[char_i] == '\\') temp_buffer[char_i] = '/';
+		if(wchar_buffer[char_i] == '\\') wchar_buffer[char_i] = '/';
 	}
 
-	temp_buffer[result.length] = '/';
+	wchar_buffer[result.length] = '/';
 	result.length++;
 
-	result.text = (char*)arena_push_data(arena, temp_buffer, result.length);
+	char utf_buffer [MAX_PATH] = {0};
+	win_wchar_to_utf8(wchar_buffer, utf_buffer, MAX_PATH);
+
+	result.text = (char*)arena_push_data(arena, utf_buffer, result.length);
 
 	return result;
 }
+
 internal bool
 win_list_all_files(String filename_to_search_for, LIST(Filename, filenames_list), Memory_arena* arena)
 {
 	ASSERT(filename_to_search_for.length < MAX_PATH);
-	char temp_buffer [MAX_PATH] = {0};
-	copy_mem(filename_to_search_for.text, temp_buffer, filename_to_search_for.length);
-	temp_buffer[filename_to_search_for.length] = '*';
+	wchar_t temp_bufferw [MAX_PATH] = {0};
+	UNTIL(i, filename_to_search_for.length)
+	{
+		temp_bufferw[i] = filename_to_search_for.text[i];
+	}
+	temp_bufferw[filename_to_search_for.length] = '*';
 
-   WIN32_FIND_DATA find_data;
-	HANDLE file_handle = FindFirstFileA(temp_buffer, &find_data);
+   WIN32_FIND_DATAW find_data;
+	HANDLE file_handle = FindFirstFileW(temp_bufferw, &find_data);
 	if(file_handle == INVALID_HANDLE_VALUE)
 	{
 		DWORD error = GetLastError();
@@ -79,23 +113,37 @@ win_list_all_files(String filename_to_search_for, LIST(Filename, filenames_list)
 	DWORD error = GetLastError();
 	while(true)
 	{
-		Filename* current_filename;
+		Filename* current_filename = 0;
 		PUSH_BACK(filenames_list, arena, current_filename);
+
+		int wchar_filename_length = 0; 
 
 		for(u32 char_i = 0; char_i < MAX_PATH && find_data.cFileName[char_i]; char_i++)
 		{
-			current_filename->name.length++;
+			wchar_filename_length++;
 		}
 
 		current_filename->name.text = (char*)arena_push_size(arena, 0);
-		arena_push_data(arena, find_data.cFileName, current_filename->name.length);
+		char temp_buffer [2*MAX_PATH] = {0};
+		
+
+		// 2 ways to do this. windows: WideCharToMultiByte or stbi: stbi_convert_wchar_to_utf8
+		u32 utf8_string_length = win_wchar_to_utf8(find_data.cFileName, temp_buffer, 2*MAX_PATH);
+
+		// u32 multi_byte_string_length = stbi_convert_wchar_to_utf8(temp_buffer3, 2*MAX_PATH, find_data.cFileName);
+
+
+		// u32 utf8_string_length = stbi_convert_wchar_to_utf8(temp_buffer, 2*MAX_PATH, find_data.cFileName);
+
+		arena_push_data(arena, temp_buffer, utf8_string_length);
+		current_filename->name.length = utf8_string_length;
 		
 		if(find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
 		{
 			current_filename->is_folder = true;
 		}
 
-		if(!FindNextFileA(file_handle, &find_data))
+		if(!FindNextFileW(file_handle, &find_data))
 		{
 			error = GetLastError();
 			ASSERT(error == ERROR_NO_MORE_FILES);
@@ -112,10 +160,34 @@ win_list_all_files(String filename_to_search_for, LIST(Filename, filenames_list)
 internal bool
 win_file_exists(char* filename)
 {
-  DWORD file_attributes = GetFileAttributes(filename);
+	// wchar_t buffer [MAX_PATH];
+	wchar_t buffer [MAX_PATH] = {0}; 
+	win_utf8_to_wchar(filename, buffer, MAX_PATH);
 
-  return (file_attributes != INVALID_FILE_ATTRIBUTES && 
-         !(file_attributes & FILE_ATTRIBUTE_DIRECTORY));
+	WIN32_FIND_DATAW find_data = {0};
+	HANDLE found_file = FindFirstFileW(buffer, &find_data);
+	if(found_file == INVALID_HANDLE_VALUE)
+	{
+		DWORD error = GetLastError();
+		ASSERT(
+			error == ERROR_FILE_NOT_FOUND 
+		|| error == ERROR_PATH_NOT_FOUND
+		|| error == ERROR_INVALID_NAME
+		);
+		return false;
+	}else{
+		return true;
+	}
+//   DWORD file_attributes = GetFileAttributesA(filename);
+
+//   if(file_attributes != INVALID_FILE_ATTRIBUTES && 
+//          !(file_attributes & FILE_ATTRIBUTE_DIRECTORY))
+// 	{
+// 		return true;	
+// 	}else{
+// 		DWORD error = GetLastError();error;
+// 		return false;
+// 	}
 }
 
 global_variable File_data packed_data = {0};
@@ -124,10 +196,11 @@ internal File_data
 win_read_file(String filename, Memory_arena* arena)
 {
 	File_data result = {0};
-	char temp_buffer [MAX_PATH]={0};
-	copy_mem(filename.text, temp_buffer, filename.length);
+	wchar_t temp_buffer [MAX_PATH]={0};
 
-	HANDLE file_handle = CreateFileA(temp_buffer, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
+	win_utf8_to_wchar(filename.text, temp_buffer, MAX_PATH);
+
+	HANDLE file_handle = CreateFileW(temp_buffer, GENERIC_READ, FILE_SHARE_READ, 0, OPEN_EXISTING, 0, 0);
 	if(file_handle == INVALID_HANDLE_VALUE)
 	{
 		DWORD error = GetLastError();
@@ -184,7 +257,9 @@ win_write_file(String filename, void* data, u32 file_size)
 		}
 	}
 
-	HANDLE file_handle = CreateFileA(filename.text, GENERIC_WRITE, FILE_SHARE_WRITE, 0, CREATE_ALWAYS, 0,0);
+	wchar_t wchar_filename [MAX_PATH] = {0};
+
+	HANDLE file_handle = CreateFileW(wchar_filename, GENERIC_WRITE, FILE_SHARE_WRITE, 0, CREATE_ALWAYS, 0,0);
 	if(file_handle != INVALID_HANDLE_VALUE)
 	{
 		DWORD bytes_written;
@@ -210,23 +285,23 @@ win_write_file(String filename, void* data, u32 file_size)
 internal bool
 win_delete_file(String filename)
 {
-	char filename_buffer [MAX_PATH] = {0};
-	copy_mem(filename.text, filename_buffer, filename.length);
+	wchar_t filename_buffer [MAX_PATH] = {0};
+	win_utf8_to_wchar(filename.text, filename_buffer, MAX_PATH);
 
-	return DeleteFileA(filename_buffer);
+	return DeleteFileW(filename_buffer);
 }
 
 internal bool
 win_copy_file(String filename, String new_filename)
 {
-	char filename_buffer [MAX_PATH] = {0};
-	copy_mem(filename.text, filename_buffer, filename.length);
+	wchar_t filename_buffer [MAX_PATH] = {0};
+	win_utf8_to_wchar(filename.text, filename_buffer, MAX_PATH);
 
-	char new_filename_buffer [MAX_PATH] = {0};
-	copy_mem(new_filename.text, new_filename_buffer, new_filename.length);
+	wchar_t new_filename_buffer [MAX_PATH] = {0};
+	win_utf8_to_wchar(new_filename.text, new_filename_buffer, MAX_PATH);
 
 	b32 overwrite_if_exists = 0;
-	return CopyFile(filename_buffer, new_filename_buffer, overwrite_if_exists);
+	return CopyFileW(filename_buffer, new_filename_buffer, overwrite_if_exists);
 }
 
 internal Int2
@@ -246,8 +321,11 @@ win_get_last_write_time(char* filename)
 {
 	FILETIME result = {0};
 
+	wchar_t wchar_filename [MAX_PATH] = {0};
+	win_utf8_to_wchar(filename, wchar_filename, MAX_PATH);
+
 	WIN32_FILE_ATTRIBUTE_DATA file_data;
-	if(GetFileAttributesExA(filename, GetFileExInfoStandard, (LPVOID)&file_data))
+	if(GetFileAttributesExW(wchar_filename, GetFileExInfoStandard, (LPVOID)&file_data))
 	{
 		result = file_data.ftLastWriteTime;
 	}

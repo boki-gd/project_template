@@ -170,6 +170,7 @@ typedef Surface Image;
 // erasing an element would leave a memory leak 
 // so if the use case is too dynamic use something else
 #define LIST(type, var_name) type* var_name[3]
+#define DEFINE_LIST(type, var_name) LIST(type, var_name) = {0}
 #define CLEAR_LIST(l) l[0] = 0; l[1] = 0; l[2] = 0;
 #define LIST_LAST(l) l[1]
 // i have no idea why i am double casting it to a u32 and a size_t but if i don't do that everything breaks

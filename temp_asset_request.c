@@ -13,6 +13,8 @@
 					Surface tex_surface = {0};
 					char temp_buffer [MAX_PATH] = {0}; 
 					copy_mem(request->filename.text, temp_buffer, request->filename.length);
+					// stbi_convert_wchar_to_utf8(temp_buffer, request->filename.length, (wchar_t*)request->filename.text);
+					
 					tex_surface.data = stbi_load(temp_buffer, (int*)&tex_surface.width, (int*)&tex_surface.height, &comp, STBI_rgb_alpha);
 					ASSERT(tex_surface.data);
 					
