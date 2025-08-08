@@ -9,6 +9,13 @@
 #include "3d_format.h"
 
 
+#define FUNCTION_TYPE_WORK_CALLBACK(name)                                     \
+	void name(void *data)
+
+typedef FUNCTION_TYPE_WORK_CALLBACK(Work_callback);
+// typedef void WORK_CALLBACK(Work_queue *queue, void *data);
+
+
 // EXPORTED FUNCTIONS
 #define FUNCTION_TYPE_UPDATE(...) void (*__VA_ARGS__)(Platform_data*, Audio, Int2)
 #define FUNCTION_TYPE_RENDER(...) void (*__VA_ARGS__)(Platform_data*, LIST(Renderer_request,), Int2 )
@@ -26,6 +33,7 @@
 
 #define FUNCTION_TYPE_GET_CURRENT_DATE(...) Datetime (*__VA_ARGS__)()
 #define FUNCTION_TYPE_OFFSET_DATE_BY_DAYS(...) Datetime (*__VA_ARGS__)(Datetime*, s32)
+#define FUNCTION_TYPE_PUSH_WORK_QUEUE_ENTRY(...) void (*__VA_ARGS__)(void* queue_p, Work_callback *Callback, void*Data)
 
 
 struct Element_handle
@@ -403,11 +411,17 @@ struct WIN_TIME_FUNCTIONS
 	FUNCTION_TYPE_OFFSET_DATE_BY_DAYS(offset_date_by_days);
 };
 
+struct MULTITHREADING_FUNCTIONS
+{
+	FUNCTION_TYPE_PUSH_WORK_QUEUE_ENTRY(push_work_queue_entry);
+};
+
 struct Platform_data
 {
 	void* app_data;
 	FILE_IO_FUNCTIONS file_io;
 	WIN_TIME_FUNCTIONS win_time;
+	MULTITHREADING_FUNCTIONS multithreading;
 
 	u64 win_time_ns;
 

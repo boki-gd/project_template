@@ -69,11 +69,6 @@ struct Audio_output
 #if MULTITHREADING_ON
 	struct Work_queue;
 	struct Win32_thread_info;
-	#define FUNCTION_TYPE_WORK_CALLBACK(name)                                     \
-	  void name(Win32_thread_info *thread, void *data)
-
-	typedef FUNCTION_TYPE_WORK_CALLBACK(Work_callback);
-	// typedef void WORK_CALLBACK(Work_queue *queue, void *data);
 
 	// I don't see the point of this
 	typedef void platform_add_entry(Work_queue *queue, Work_callback *callback,void *data);
@@ -119,7 +114,8 @@ struct Audio_output
 			if(Index == OriginalNextEntryToRead )
 			{
 				Work_queue_entry Entry = thread->queue->Entries[Index];
-				Entry.callback(thread, Entry.data);
+				// Entry.callback(thread, Entry.data);
+				Entry.callback(Entry.data);
 				InterlockedIncrement((LONG volatile*)&thread->queue->CompletionCount);    
 			}
 		}
@@ -143,8 +139,9 @@ struct Audio_output
 	}  
 	
 	internal void 
-	win32_push_work_queue_entry(Work_queue* Queue, Work_callback *Callback, void*Data)
+	win_push_work_queue_entry(void* queue_p, Work_callback *Callback, void*Data)
 	{
+		Work_queue* Queue = (Work_queue*)queue_p;
 		u32 NewNextentryToWrite = (Queue->NextEntryToWrite + 1) % ARRAYCOUNT(Queue->Entries);
 		ASSERT(NewNextentryToWrite != Queue->NextEntryToRead);
 		Work_queue_entry *Entry = Queue->Entries + Queue->NextEntryToWrite;
@@ -159,10 +156,11 @@ struct Audio_output
 
 	
 	FUNCTION_TYPE_WORK_CALLBACK(test_mutlthreading_function)
-	{thread;
+	{
 		char buffer[256];
 		#if 1
-			wsprintf(buffer, "Thread %u (index %u): %s\n", GetCurrentThreadId(), thread->thread_index, (char*)data);
+			wsprintf(buffer, "Thread %u: %s\n", GetCurrentThreadId(), (char*)data);
+			// wsprintf(buffer, "Thread %u (index %u): %s\n", GetCurrentThreadId(), thread->thread_index, (char*)data);
 		#else
 			wsprintf(buffer, "Thread %u: %s\n", thread->thread_index, (char*)data);
 		#endif
@@ -231,56 +229,56 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 		}
 	}
 	
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 0");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 1");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 2");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 3");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 4");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 5");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 6");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 7");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 8");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 9");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 0");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 1");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 2");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 3");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 4");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 5");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 6");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 7");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 8");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 9");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 0");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 1");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 2");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 3");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 4");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 5");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 6");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 7");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 8");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 9");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 0");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 1");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 2");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 3");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 4");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 5");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 6");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 7");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 8");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 9");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 0");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 1");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 2");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 3");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 4");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 5");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 6");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 7");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 8");
-	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 9");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 0");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 1");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 2");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 3");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 4");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 5");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 6");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 7");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 8");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 9");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 0");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 1");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 2");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 3");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 4");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 5");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 6");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 7");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 8");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 9");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 0");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 1");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 2");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 3");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 4");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 5");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 6");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 7");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 8");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 9");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 0");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 1");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 2");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 3");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 4");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 5");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 6");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 7");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 8");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 9");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 0");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 1");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 2");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 3");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 4");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 5");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 6");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 7");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 8");
+	win_push_work_queue_entry(&queue, test_mutlthreading_function, "String 9");
 
 	win32_complete_unfinished_work_queue_entries(&thread_infos[0]);
 
@@ -377,6 +375,8 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 
 	memory.win_time.get_current_date = &win_get_current_date;
 	memory.win_time.offset_date_by_days = &win_offset_date_by_days;
+
+	memory.multithreading.push_work_queue_entry = &win_push_work_queue_entry;
 
 	// TESTING THAT stbi_load CAN OPEN A UNICODE NAMED FILE WITH utf8
 

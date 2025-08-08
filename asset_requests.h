@@ -24,7 +24,7 @@ find_first_available_i(volatile b16* used_list, u16 list_size)
 }
 
 FUNCTION_TYPE_WORK_CALLBACK(threaded_request_tex_from_file)
-{thread;
+{
    Thread_param* thread_param = (Thread_param*)data;
    Platform_data* memory = thread_param->memory;
    D3D* dx = thread_param->dx;
@@ -126,7 +126,7 @@ process_asset_requests(Platform_data* memory,
 				#if 0
 					threaded_request_tex_from_file(&thread_infos[0],thread_param);
 				#else
-					win32_push_work_queue_entry(&queue, threaded_request_tex_from_file, thread_param);
+					win_push_work_queue_entry(&queue, threaded_request_tex_from_file, thread_param);
 					// win32_complete_unfinished_work_queue_entries(&thread_infos[0]);
 				#endif
 
