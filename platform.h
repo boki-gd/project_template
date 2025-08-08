@@ -289,6 +289,9 @@ enum Asset_request_type{
 	ASSET_REQUEST_CREATE_RTV,
 	ASSET_REQUEST_SOUND_FROM_FILE,
 
+	ASSET_REQUEST_FREE_TEX,
+	ASSET_REQUEST_ALLOC_MEMORY,
+
 	ASSET_REQUEST_TEX_FROM_SURFACE,
 	ASSET_REQUEST_CREATE_DYNAMIC_TEXTURE,
 	ASSET_REQUEST_MESH_FROM_PRIMITIVES,
@@ -339,6 +342,7 @@ struct Asset_request
 		u16* p_uid;
 		u32 sound_uid;
 		u16* font_uid;
+		u16 free_uid;
 	};
 	String filename; 
 	union
@@ -385,6 +389,11 @@ struct Asset_request
 		b32 enable_alpha_blending;
 
 		b32 enable_depth;
+		
+		struct{
+			void** data;
+			u32 size;
+		}alloc_memory;
 	};
 };
 
@@ -429,7 +438,10 @@ struct Platform_data
 	f32 aspect_ratio;
 	f32 depth_effect; // this is redundant with the fov
 
-	LIST(Tex_info, tex_infos);
+	#define MAX_TEXINFOS 1000
+
+	Tex_info tex_infos[MAX_TEXINFOS];
+	volatile b16 tex_infos_b[MAX_TEXINFOS];
 	LIST(Font, fonts_list);
 	
 	struct
@@ -781,9 +793,8 @@ internal void
 render_char(Platform_data* memory, Font* font, u8 character,  Int2 char_pos, u32 zpos,  Color color, Int2 client_size, LIST(Renderer_request, render_list), u16 plane_mesh_uid)
 {
 	int char_width = 8;
-	Tex_info* char_texinfo;
 	u32 character_font_index = character - font->first_char;
-	LIST_GET(memory->tex_infos, font->texinfo_uids[character_font_index], char_texinfo);
+	Tex_info* char_texinfo = &memory->tex_infos[font->texinfo_uids[character_font_index]];
 	
 	V3 char_final_size = {0,0,1};
 	// screen size to client size
@@ -840,9 +851,8 @@ internal void
 instance_char(Platform_data* memory, Font* font, u8 character,  Int2 char_pos, u32 zpos,  Color color, Int2 client_size)
 {
 	int char_width = 8;
-	Tex_info* char_texinfo;
 	u32 character_font_index = character - font->first_char;
-	LIST_GET(memory->tex_infos, font->texinfo_uids[character_font_index], char_texinfo);
+	Tex_info* char_texinfo = &memory->tex_infos[font->texinfo_uids[character_font_index]];
 	
 	V3 char_final_size = {0,0,1};
 	// screen size to client size

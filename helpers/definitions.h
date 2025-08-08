@@ -75,6 +75,8 @@ typedef double f64;
 
 #define ARRAYCOUNT(Array) (sizeof(Array) / sizeof((Array)[0]))
 
+#define ARRAY_ARRAYCOUNT(array) array, ARRAYCOUNT(array)
+
 #define MIN(a,b) (((a)<(b))?(a):(b))
 #define MAX(a,b) (((a)>(b))?(a):(b))
 

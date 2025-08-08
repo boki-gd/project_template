@@ -61,14 +61,6 @@ struct D3D
 
 	Dx11_rasterizer_state* rasterizer_state;
 	Dx11_sampler_state* sampler;
-	
-	// ID3D11Texture2D* pre_processing_render_target_texture;
-	// ID3D11Texture2D* depth_render_target_texture;
-	// Dx11_texture2d* render_target_textures_list[4];
-
-	// Dx11_render_target_view* render_target_views_list[4];
-
-	// Dx11_texture_view* render_target_texture_views_list[4];
 };
 
 struct D3D_constant_buffer
@@ -131,6 +123,20 @@ struct Depth_stencil
 {
 	Dx11_depth_stencil_state* state;
 	Dx11_depth_stencil_view* view;
+};
+
+#define MAX_DX_TEXTURES 60
+struct Dx_assets
+{
+	Dx11_texture_view* textures_list[MAX_DX_TEXTURES];
+	volatile b16 textures_list_b[MAX_DX_TEXTURES];
+	// List textures_list;
+	LIST(Vertex_shader, vertex_shaders_list);
+	LIST(Pixel_shader, pixel_shaders_list);
+	LIST(Dx_mesh, meshes_list);
+	LIST(Dx11_blend_state*, blend_states_list);
+	LIST(Depth_stencil, depth_stencils_list);
+	LIST(Render_target, render_targets_list);
 };
 
 

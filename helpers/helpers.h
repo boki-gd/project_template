@@ -173,6 +173,7 @@ typedef Surface Image;
 #define DEFINE_LIST(type, var_name) LIST(type, var_name) = {0}
 #define CLEAR_LIST(l) l[0] = 0; l[1] = 0; l[2] = 0;
 #define LIST_LAST(l) l[1]
+#define LIST_COPY(source, target) target[0]=source[0];target[1]=source[1];target[2]=source[2]
 // i have no idea why i am double casting it to a u32 and a size_t but if i don't do that everything breaks
 #define LIST_SIZE(l) ((u32)(size_t)(l[2]))
 #define NEXT_ELEM(node) *((void**)(node+1))
@@ -220,6 +221,21 @@ typedef Surface Image;
       *next_elem_pointer = *(void**)(((u8*)*next_elem_pointer)+pointer_size);\
       *((size_t*)&l[2]) -= 1;\
    }
+
+struct List_node
+{
+	// List_node* root;
+	// List_node* prev;
+	List_node* next;
+	void* data;
+};
+
+struct List
+{
+	List_node* first;
+	List_node* last;
+	u32 count;
+};
 
 
 // TEMPORARILY ORPHAN 

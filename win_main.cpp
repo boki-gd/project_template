@@ -6,8 +6,8 @@
 #include "platform.h"
 // #include APP_HEADER_FILENAME
 
-#include "win_functions.h"
 
+#include "win_functions.h"
 #include "d3d11_layer.h"
 
 // STB LIBRARIES
@@ -24,7 +24,18 @@
 
 #define STB_TRUETYPE_IMPLEMENTATION
 #include "libraries/stb_truetype.h"
+
 // STB END
+
+/* MULTITHREADING FUNCTIONS
+	CreateThread()
+	CloseHandle()
+	InterlockedIncrement()
+	InterlockedCompareExchange()
+	WaitForSingleObjectEx()
+	CreateSemaphoreEx()
+	ReleaseSemaphore()
+*/
 
 struct App_dll
 {
@@ -53,11 +64,227 @@ struct Audio_output
 #endif
 
 // ENTRY POINT
+#define MULTITHREADING_ON 1
+
+#if MULTITHREADING_ON
+	struct Work_queue;
+	struct Win32_thread_info;
+	#define FUNCTION_TYPE_WORK_CALLBACK(name)                                     \
+	  void name(Win32_thread_info *thread, void *data)
+
+	typedef FUNCTION_TYPE_WORK_CALLBACK(Work_callback);
+	// typedef void WORK_CALLBACK(Work_queue *queue, void *data);
+
+	// I don't see the point of this
+	typedef void platform_add_entry(Work_queue *queue, Work_callback *callback,void *data);
+	typedef void platform_complete_all_work(Work_queue *queue);
+
+	struct Work_queue_entry {
+		Work_callback *callback;
+		void *data;
+	};
+
+	struct Work_queue {
+		// circular buffer
+		u32 volatile NextEntryToRead;
+		u32 volatile NextEntryToWrite;
+
+		u32 volatile CompletionGoal;
+		u32 volatile CompletionCount;
+
+		Work_queue_entry Entries[256];
+
+		HANDLE SemaphoreHandle;
+	};
+
+	struct Win32_thread_info{
+		Work_queue* queue;
+		u32 thread_index;
+	};
+
+	
+	internal b32 
+	win32_do_next_work_queue_entry(Win32_thread_info *thread)
+	{
+		b32 WeShouldSleep = false;
+
+		u32 OriginalNextEntryToRead = thread->queue->NextEntryToRead;
+		u32 NewNextEntryToRead = (OriginalNextEntryToRead + 1) % ARRAYCOUNT(thread->queue->Entries);
+		if(OriginalNextEntryToRead != thread->queue->NextEntryToWrite)
+		{ 
+			u32 Index = InterlockedCompareExchange((LONG volatile *)&thread->queue->NextEntryToRead,
+																	NewNextEntryToRead,
+																	OriginalNextEntryToRead );
+			
+			if(Index == OriginalNextEntryToRead )
+			{
+				Work_queue_entry Entry = thread->queue->Entries[Index];
+				Entry.callback(thread, Entry.data);
+				InterlockedIncrement((LONG volatile*)&thread->queue->CompletionCount);    
+			}
+		}
+		else
+		{
+			WeShouldSleep = true;
+		}
+		return WeShouldSleep;
+	}
+
+	internal void 
+	win32_complete_unfinished_work_queue_entries(Win32_thread_info* thread)
+	{
+		while(thread->queue->CompletionGoal != thread->queue->CompletionCount)
+		{
+			win32_do_next_work_queue_entry(thread);
+		}
+
+		thread->queue->CompletionGoal = 0;
+		thread->queue->CompletionCount = 0;
+	}  
+	
+	internal void 
+	win32_push_work_queue_entry(Work_queue* Queue, Work_callback *Callback, void*Data)
+	{
+		u32 NewNextentryToWrite = (Queue->NextEntryToWrite + 1) % ARRAYCOUNT(Queue->Entries);
+		ASSERT(NewNextentryToWrite != Queue->NextEntryToRead);
+		Work_queue_entry *Entry = Queue->Entries + Queue->NextEntryToWrite;
+		Entry->callback = Callback;
+		Entry->data = Data;
+		++Queue->CompletionGoal;
+		_WriteBarrier();
+		//_mm_sfence();//not necessary as x86 memory model is strongly-ordered (for normal memory)
+		Queue->NextEntryToWrite = NewNextentryToWrite;
+		ReleaseSemaphore(Queue->SemaphoreHandle, 1, 0);
+	}
+
+	
+	FUNCTION_TYPE_WORK_CALLBACK(test_mutlthreading_function)
+	{thread;
+		char buffer[256];
+		#if 1
+			wsprintf(buffer, "Thread %u (index %u): %s\n", GetCurrentThreadId(), thread->thread_index, (char*)data);
+		#else
+			wsprintf(buffer, "Thread %u: %s\n", thread->thread_index, (char*)data);
+		#endif
+		OutputDebugStringA(buffer);
+	}
+
+	global_variable LONG volatile thread_count = 1;
+	
+	DWORD WINAPI ThreadProc(LPVOID lpParameter)
+	{
+		Win32_thread_info* ThreadInfo = (Win32_thread_info*) lpParameter;
+		LONG original_thread_count = thread_count;
+		LONG current_thread_index = InterlockedCompareExchange(&thread_count, thread_count+1, original_thread_count);
+		ThreadInfo->thread_index = current_thread_index;
+
+		for(;;)
+		{
+			if(win32_do_next_work_queue_entry(ThreadInfo))
+			{
+				WaitForSingleObjectEx(ThreadInfo->queue->SemaphoreHandle, INFINITE, FALSE);
+			}
+		}
+		//return 0;
+	}
+
+#endif 
+
+
+
+global_variable Work_queue queue = {};
+#include "asset_requests.h"
 
 
 int WINAPI 
 wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cmd_show)
 {h_prev_instance; cmd_line; cmd_show; //unreferenced formal parameters
+
+#if MULTITHREADING_ON
+	// TRYING TO IMPLEMENT MULTITHREADING WORK QUEUE
+	
+	//TODO: get number of threads
+	static Win32_thread_info thread_infos[7];
+	int initialCount = 0;
+	u32 threadCount = ARRAYCOUNT(thread_infos);
+
+	HANDLE semaphoreHandle = CreateSemaphoreExA(NULL,
+		initialCount,
+		threadCount,
+		NULL,
+		0,
+		SEMAPHORE_ALL_ACCESS
+	);
+
+	queue.SemaphoreHandle = semaphoreHandle;
+
+	UNTIL(thread_i, threadCount)
+	{
+		Win32_thread_info* info = thread_infos+thread_i;
+		info->queue = &queue;
+		
+		//reserve 0 index for main thread
+		if(thread_i)	
+		{
+			HANDLE threadHandle = CreateThread(0, 0, ThreadProc, info, 0,0);
+			CloseHandle(threadHandle);
+		}
+	}
+	
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 0");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 1");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 2");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 3");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 4");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 5");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 6");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 7");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 8");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 9");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 0");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 1");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 2");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 3");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 4");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 5");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 6");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 7");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 8");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 9");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 0");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 1");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 2");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 3");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 4");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 5");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 6");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 7");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 8");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 9");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 0");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 1");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 2");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 3");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 4");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 5");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 6");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 7");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 8");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 9");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 0");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 1");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 2");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 3");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 4");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 5");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 6");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 7");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 8");
+	win32_push_work_queue_entry(&queue, test_mutlthreading_function, "String 9");
+
+	win32_complete_unfinished_work_queue_entries(&thread_infos[0]);
+
+#endif
 	
 
 	RECT winrect = {0,0,1600,900};
@@ -559,7 +786,8 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 	// PREPARING ASSET LISTS
 
 
-	// TODO: make this more fail proof
+	// TODO: there should be a better way to do this
+
 	static D3D11_PRIMITIVE_TOPOLOGY topologies_list [TOPOLOGIES_COUNT];
 	topologies_list[TOPOLOGY_LINE_LIST] = D3D11_PRIMITIVE_TOPOLOGY_LINELIST;
 	topologies_list[TOPOLOGY_LINE_STRIP] = D3D11_PRIMITIVE_TOPOLOGY_LINESTRIP;
@@ -593,21 +821,22 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 	ie_formats_sizes[IE_FORMAT_4F32] = 16;
 	ie_formats_sizes[IE_FORMAT_16F32] = 64;
 	
-	LIST(Dx11_texture_view*, textures_list) = {0};
-	LIST(Vertex_shader, vertex_shaders_list) = {0};
-	LIST(Pixel_shader, pixel_shaders_list) = {0};
-	LIST(Dx_mesh, meshes_list) = {0};
-	LIST(Dx11_blend_state*, blend_states_list) = {0};
-	LIST(Depth_stencil, depth_stencils_list) = {0};
+	Dx_assets dx_assets = {0};
+	// LIST(Dx11_texture_view*, textures_list) = {0};
+	// LIST(Vertex_shader, vertex_shaders_list) = {0};
+	// LIST(Pixel_shader, pixel_shaders_list) = {0};
+	// LIST(Dx_mesh, meshes_list) = {0};
+	// LIST(Dx11_blend_state*, blend_states_list) = {0};
+	// LIST(Depth_stencil, depth_stencils_list) = {0};
 	{
 		// Depth_stencil* null_depth_stencil;
 		// PUSH_BACK(depth_stencils_list, assets_arena, null_depth_stencil);
 	}
 
 	// RENDER TARGET VIEWS RTV's
-	LIST(Render_target, render_targets_list) = {0};
+	// LIST(Render_target, render_targets_list) = {0};
 	Render_target* screen_render_target;
-	PUSH_BACK(render_targets_list, assets_arena, screen_render_target);
+	PUSH_BACK(dx_assets.render_targets_list, assets_arena, screen_render_target);
 
 	// this is so that when i use the index 0 for the RENDER_REQUEST_SET_SHADER_RESOURCE_FROM_RENDER_TARGET
 	// the texture_view pointer will be a 0 so that means unset the resource
@@ -626,8 +855,6 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 	}
 
 	ARRAY_DECLARATION(Audio_playback, playback_array, 300, assets_arena);
-
-	u32 assets_count = 0; //TODO: this is just for debugging
 
 	D3D_constant_buffer* object_buffer = &renderer_variables[0];
 
@@ -810,7 +1037,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				}
 			}
 
-			FOREACH(Vertex_shader, current_vs, vertex_shaders_list)
+			FOREACH(Vertex_shader, current_vs, dx_assets.vertex_shaders_list)
 			{
 				FILETIME vs_last_write_time = win_get_last_write_time(current_vs->filename.text);
 				if(CompareFileTime(&vs_last_write_time, &current_vs->last_write_time) != 0)
@@ -824,7 +1051,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 					current_vs->last_write_time = win_get_last_write_time(current_vs->filename.text);
 				}
 			}
-			FOREACH(Pixel_shader, current_ps, pixel_shaders_list)
+			FOREACH(Pixel_shader, current_ps, dx_assets.pixel_shaders_list)
 			{
 				FILETIME ps_last_write_time = win_get_last_write_time(current_ps->filename.text);
 				if(CompareFileTime(&ps_last_write_time, &current_ps->last_write_time) != 0)
@@ -1241,7 +1468,19 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 			apps[current_app].update(&memory, {playback_array, sample_t}, client_size);
 		}
 
-		#include "temp_asset_request.c"
+		process_asset_requests(
+			&memory, 
+			assets_arena,
+			dx,
+			ie_formats_sizes,
+			ie_formats_list,
+			topologies_list,
+			renderer_variables,
+			window,
+			&dx_assets,
+			sounds_list,
+			thread_infos
+		);
 		CLEAR_LIST(memory.asset_requests);
 		
 		// APP RENDER REQUESTS/PREPARATION
@@ -1393,7 +1632,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				create_screen_render_target_view(dx, &screen_render_target->target_view);
 				
 				Depth_stencil* resize_ds;
-				LIST_GET(depth_stencils_list, 0, resize_ds);
+				LIST_GET(dx_assets.depth_stencils_list, 0, resize_ds);
 				if(resize_ds->view)
 				{
 					resize_ds->view->Release();
@@ -1414,7 +1653,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 		if(screen_render_target->target_view)
 		{		
 			{// setting default rtv and ds
-				Depth_stencil* depth_stencil; LIST_GET(depth_stencils_list, 0, depth_stencil);
+				Depth_stencil* depth_stencil; LIST_GET(dx_assets.depth_stencils_list, 0, depth_stencil);
 				// state can be null to set the default depth_stencil in 
 				dx->context->OMSetDepthStencilState(depth_stencil->state, 0);
 				
@@ -1425,10 +1664,10 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				dx->context->OMSetRenderTargets(1, rtviews_to_bind, depth_stencil->view); 
 			}
 
-			dx->context->ClearRenderTargetView(render_targets_list[0]->target_view, (float*)&memory.bg_color);
+			dx->context->ClearRenderTargetView(dx_assets.render_targets_list[0]->target_view, (float*)&memory.bg_color);
 			
 			u32 counter = 0;
-			FOREACH(Depth_stencil, current_ds, depth_stencils_list){
+			FOREACH(Depth_stencil, current_ds, dx_assets.depth_stencils_list){
 				counter++;
 				if(current_ds->view)
 				{
@@ -1456,7 +1695,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				if(request->type_flags & RENDER_REQUEST_MODIFY_DYNAMIC_MESH)
 				{
 					Dx_mesh* modify_mesh;
-					LIST_GET(meshes_list, request->modified_mesh.mesh_uid, modify_mesh);
+					LIST_GET(dx_assets.meshes_list, request->modified_mesh.mesh_uid, modify_mesh);
 					dx11_modify_resource(dx, modify_mesh->vertex_buffer, request->modified_mesh.vertices,
 						request->modified_mesh.vertex_count * modify_mesh->vertex_size
 					);
@@ -1471,8 +1710,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				if(request->type_flags & RENDER_REQUEST_MODIFY_DYNAMIC_TEXTURE) 
 				{
 					ID3D11Resource* modify_texture;
-					Dx11_texture_view** texture_view;
-					LIST_GET(textures_list, request->modifiable_texture.source_tex_uid, texture_view);
+					Dx11_texture_view** texture_view = &dx_assets.textures_list[request->modifiable_texture.source_tex_uid];
 					(*texture_view)->GetResource(&modify_texture);
 					// dx11_modify_resource(dx, modify_texture, request->modifiable_texture.new_data, request->modifiable_texture.size);
 					D3D11_BOX texbox = {
@@ -1496,7 +1734,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				{
 					Dx11_texture_view** texture_view; 
 					if(request->set_shader_resource_from_texture.tex_uid != NULL_INDEX16){
-						LIST_GET(textures_list, request->set_shader_resource_from_texture.tex_uid, texture_view);
+						texture_view = &dx_assets.textures_list[request->set_shader_resource_from_texture.tex_uid];
 					}else{
 						texture_view = ARENA_PUSH_STRUCT(temp_arena, Dx11_texture_view*);
 					}
@@ -1505,7 +1743,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				if(request->type_flags & RENDER_REQUEST_RESIZE_DEPTH_STENCIL_VIEW)
 				{
 					Depth_stencil* resize_ds;
-					LIST_GET(depth_stencils_list, request->resize_depth_stencil_view_uid, resize_ds);
+					LIST_GET(dx_assets.depth_stencils_list, request->resize_depth_stencil_view_uid, resize_ds);
 					
 					if(resize_ds->view)
 					{
@@ -1522,19 +1760,19 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				}
 				if(request->type_flags & RENDER_REQUEST_SET_VS)
 				{
-					Vertex_shader* vertex_shader; LIST_GET(vertex_shaders_list, request->vshader_uid, vertex_shader);
+					Vertex_shader* vertex_shader; LIST_GET(dx_assets.vertex_shaders_list, request->vshader_uid, vertex_shader);
 
 					dx->context->VSSetShader(vertex_shader->shader, 0, 0);
 					dx->context->IASetInputLayout(vertex_shader->input_layout);
 				}
 				if(request->type_flags & RENDER_REQUEST_SET_PS)
 				{
-					Pixel_shader* pixel_shader; LIST_GET(pixel_shaders_list, request->pshader_uid, pixel_shader);
+					Pixel_shader* pixel_shader; LIST_GET(dx_assets.pixel_shaders_list, request->pshader_uid, pixel_shader);
 					dx->context->PSSetShader(pixel_shader->shader, 0, 0);
 				}
 				if(request->type_flags & RENDER_REQUEST_SET_BLEND_STATE)
 				{
-					Dx11_blend_state** blend_state; LIST_GET(blend_states_list, request->blend_state_uid, blend_state);
+					Dx11_blend_state** blend_state; LIST_GET(dx_assets.blend_states_list, request->blend_state_uid, blend_state);
 					
 					// float blend_factor [4] = {0.0f,0.0f,0.0f,1.0f};
 					dx->context->OMSetBlendState(*blend_state, 0, ~0U);   
@@ -1545,7 +1783,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 					ASSERT(request->resize_rtv_uid != 0); 
 
 					Render_target* render_target;
-					LIST_GET(render_targets_list, request->resize_rtv_uid, render_target);
+					LIST_GET(dx_assets.render_targets_list, request->resize_rtv_uid, render_target);
 					Dx11_texture_view** texture_view = render_target->texture_view;
 					if(render_target->target_view)
 					{
@@ -1596,7 +1834,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				}
 				if(request->type_flags & RENDER_REQUEST_SET_RENDER_TARGET_AND_DEPTH_STENCIL)
 				{
-					Depth_stencil* depth_stencil; LIST_GET(depth_stencils_list, request->set_depth_stencil_uid, depth_stencil);
+					Depth_stencil* depth_stencil; LIST_GET(dx_assets.depth_stencils_list, request->set_depth_stencil_uid, depth_stencil);
 					// state can be null to set the default depth_stencil in 
 					dx->context->OMSetDepthStencilState(depth_stencil->state, 0);
 
@@ -1608,7 +1846,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 					UNTIL(i, request->set_rtv_count)
 					{
 						Render_target* current_render_target;
-						LIST_GET(render_targets_list, request->set_rtv_uids[i], current_render_target);
+						LIST_GET(dx_assets.render_targets_list, request->set_rtv_uids[i], current_render_target);
 						rtviews_to_bind[i] = current_render_target->target_view;
 					}
 					dx->context->OMSetRenderTargets(request->set_rtv_count, rtviews_to_bind, depth_stencil->view); 
@@ -1628,7 +1866,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				if(request->type_flags & RENDER_REQUEST_SET_SHADER_RESOURCE_FROM_RENDER_TARGET)
 				{
 					Render_target* render_target_source;
-					LIST_GET(render_targets_list, request->set_shader_resource_from_rtv.rtv_uid, render_target_source);
+					LIST_GET(dx_assets.render_targets_list, request->set_shader_resource_from_rtv.rtv_uid, render_target_source);
 
 					dx->context->PSSetShaderResources(request->set_shader_resource_from_rtv.target_index,1, render_target_source->texture_view);
 					ASSERT(true);	
@@ -1651,7 +1889,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				if(request->type_flags & RENDER_REQUEST_CLEAR_RTV)
 				{
 					Render_target* rtv_to_clear;
-					LIST_GET(render_targets_list, request->clear_rtv.uid, rtv_to_clear);
+					LIST_GET(dx_assets.render_targets_list, request->clear_rtv.uid, rtv_to_clear);
 					dx->context->ClearRenderTargetView(rtv_to_clear->target_view, (float*)&request->clear_rtv.color);
 					ASSERT(true);
 				}
@@ -1676,7 +1914,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 
 					if(object->texinfo_uid != NULL_INDEX16)
 					{
-						Tex_info* texinfo; LIST_GET(memory.tex_infos, object->texinfo_uid, texinfo);
+						Tex_info* texinfo = &memory.tex_infos[object->texinfo_uid];
 						object_data.texrect = {
 							texinfo->texrect.x + (texinfo->texrect.w*(!!request->flip_h)),
 							texinfo->texrect.y,
@@ -1684,7 +1922,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 							texinfo->texrect.h
 						};
 
-						Dx11_texture_view** texture_view; LIST_GET(textures_list, texinfo->texture_uid, texture_view);
+						Dx11_texture_view** texture_view = &dx_assets.textures_list[texinfo->texture_uid];
 						
 						dx->context->PSSetShaderResources(0,1, texture_view);
 					}
@@ -1696,7 +1934,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 					dx11_modify_resource(dx, object_buffer->buffer, &object_data, sizeof(object_data));
 					
 
-					Dx_mesh* object_mesh; LIST_GET(meshes_list, object->mesh_uid, object_mesh);
+					Dx_mesh* object_mesh; LIST_GET(dx_assets.meshes_list, object->mesh_uid, object_mesh);
 					
 					dx11_draw_mesh(dx, object_mesh);
 					ASSERT(true);
@@ -1704,19 +1942,17 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 				else if(request->type_flags & RENDER_REQUEST_RENDER_INSTANCES)
 				{
 					ASSERT(request->instancing_data.instances_count);
-					Tex_info* texinfo; 
-					LIST_GET(memory.tex_infos, request->instancing_data.texinfo_uid, texinfo);
+					Tex_info* texinfo = &memory.tex_infos[request->instancing_data.texinfo_uid];
 					// THIS IS THE TEXTURE THAT ALL THE INSTANCES WILL USE
-					Dx11_texture_view** texture_view;
-					LIST_GET(textures_list, texinfo->texture_uid, texture_view);
+					Dx11_texture_view** texture_view = &dx_assets.textures_list[texinfo->texture_uid];
 					//TODO: add texrect to the instance data
 					dx->context->PSSetShaderResources(0, 1, texture_view);
 					
 					// THIS IS THE MESH THAT ALL THE INSTANCES WILL USE
-					Dx_mesh* vertices_mesh; LIST_GET(meshes_list, request->instancing_data.mesh_uid, vertices_mesh);
+					Dx_mesh* vertices_mesh; LIST_GET(dx_assets.meshes_list, request->instancing_data.mesh_uid, vertices_mesh);
 
 					// THIS IS THE PER INSTANCE DATA
-					Dx_mesh* instances_data_mesh; LIST_GET(meshes_list, request->instancing_data.dynamic_instances_mesh, instances_data_mesh);
+					Dx_mesh* instances_data_mesh; LIST_GET(dx_assets.meshes_list, request->instancing_data.dynamic_instances_mesh, instances_data_mesh);
 					dx11_modify_resource(dx, instances_data_mesh->vertex_buffer, 
 						request->instancing_data.instances, 
 						sizeof(Instance_data)*request->instancing_data.instances_count
@@ -1872,7 +2108,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 		}
 	}
 	
-	FOREACH(Dx_mesh, current_mesh, meshes_list)
+	FOREACH(Dx_mesh, current_mesh, dx_assets.meshes_list)
 	{
 		current_mesh->vertex_buffer->Release();
 		if(current_mesh->index_buffer)
@@ -1880,7 +2116,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 	}
 
 
-	FOREACH(Render_target, current_rt, render_targets_list)
+	FOREACH(Render_target, current_rt, dx_assets.render_targets_list)
 	{
 		current_rt->target_view->Release();
 		//i don't know if i should release the texture or the texture view
@@ -1898,32 +2134,33 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 			current_rt->texture = 0;
 		}
 	}
-	FOREACH(Dx11_texture_view*, current_tex, textures_list)
+	UNTIL(tex_i, ARRAYCOUNT(dx_assets.textures_list))
 	{
+		Dx11_texture_view** current_tex = &dx_assets.textures_list[tex_i];
 		if(*current_tex)
 		{
 			(*current_tex)->Release();
 		}
 	}
 
-	FOREACH(Vertex_shader, current_vs, vertex_shaders_list){
+	FOREACH(Vertex_shader, current_vs, dx_assets.vertex_shaders_list){
 		current_vs->shader->Release();
 		current_vs->input_layout->Release();
 		String temp_filename = concat_strings(current_vs->filename, string(".temp"), temp_arena);
 		win_delete_file(temp_filename);
 	}
 
-	FOREACH(Pixel_shader, current_ps, pixel_shaders_list){
+	FOREACH(Pixel_shader, current_ps, dx_assets.pixel_shaders_list){
 		(current_ps->shader)->Release();
 		String temp_filename = concat_strings(current_ps->filename, string(".temp"), temp_arena);
 		win_delete_file(temp_filename);
 	}
 
-	FOREACH(Dx11_blend_state*, current_blend, blend_states_list){
+	FOREACH(Dx11_blend_state*, current_blend, dx_assets.blend_states_list){
 		(*current_blend)->Release();
 	}
 
-	FOREACH(Depth_stencil, current_stencil, depth_stencils_list){
+	FOREACH(Depth_stencil, current_stencil, dx_assets.depth_stencils_list){
 		if(current_stencil->view)
 			current_stencil->view->Release();
 		if(current_stencil->state)
