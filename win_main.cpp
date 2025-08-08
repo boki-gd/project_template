@@ -340,6 +340,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 	ASSERT(app_size);
 	memory.temp_arena = temp_arena;
 	memory.permanent_arena = permanent_arena;
+	memory.work_queue = &queue;
 
 	
 	// App_data* app_data = (App_data*)VirtualAlloc(0, sizeof(App_data), MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);

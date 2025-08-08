@@ -416,12 +416,14 @@ struct MULTITHREADING_FUNCTIONS
 	FUNCTION_TYPE_PUSH_WORK_QUEUE_ENTRY(push_work_queue_entry);
 };
 
+
 struct Platform_data
 {
 	void* app_data;
 	FILE_IO_FUNCTIONS file_io;
 	WIN_TIME_FUNCTIONS win_time;
 	MULTITHREADING_FUNCTIONS multithreading;
+	void* work_queue;
 
 	u64 win_time_ns;
 
