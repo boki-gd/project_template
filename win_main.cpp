@@ -201,8 +201,8 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 #if MULTITHREADING_ON
 	// TRYING TO IMPLEMENT MULTITHREADING WORK QUEUE
 	
-	//TODO: get number of threads
-	static Win32_thread_info thread_infos[7];
+	//TODO: get number of threads (counting the main thread)
+	static Win32_thread_info thread_infos[4];
 	int initialCount = 0;
 	u32 threadCount = ARRAYCOUNT(thread_infos);
 

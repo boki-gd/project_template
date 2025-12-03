@@ -125,6 +125,8 @@ struct Depth_stencil
 	Dx11_depth_stencil_view* view;
 };
 
+// TODO: i could probably make this number bigger, 
+// but i should regulate the number of textures depending on how big they are
 #define MAX_DX_TEXTURES 60
 struct Dx_assets
 {

@@ -6,6 +6,23 @@ struct Thread_param{
 	Dx_assets* dx_assets;
 };
 
+// without the Assert
+internal u16
+unsafe_find_first_available_i(volatile b16* used_list, u16 list_size)
+{
+	UNTIL(i, list_size)
+	{
+		if(!used_list[i])
+		{
+			if(0 == InterlockedCompareExchange16(&used_list[i], 1, 0))
+			{
+				return (u16)i;
+			}
+		}
+	}
+	return NULL_INDEX16;
+}
+
 internal u16
 find_first_available_i(volatile b16* used_list, u16 list_size)
 {
@@ -20,7 +37,7 @@ find_first_available_i(volatile b16* used_list, u16 list_size)
 		}
 	}
 	ASSERT(false);
-	return 0;
+	return NULL_INDEX16;
 }
 
 FUNCTION_TYPE_WORK_CALLBACK(threaded_request_tex_from_file)
@@ -38,12 +55,25 @@ FUNCTION_TYPE_WORK_CALLBACK(threaded_request_tex_from_file)
    //    thread_param->textures_list[2]
    // };
 
-	//TODO: this is not multithreading safe !!!
-	// InterlockedCompareExchange()
 
-
-   u16 new_tex_i = find_first_available_i(dx_assets->textures_list_b, ARRAYCOUNT(dx_assets->textures_list_b));
+   u16 new_tex_i = unsafe_find_first_available_i(dx_assets->textures_list_b, ARRAYCOUNT(dx_assets->textures_list_b));
+	#if 1
+		if(new_tex_i == NULL_INDEX16)	
+		{
+			*request->p_uid = NULL_INDEX16;
+			return ;
+		}
+	#else // THIS IS PROBABLY WHAT'S CAUSING MOST OF THE BUGS RIGHT NOW
+		// I should probably replace it with a recency loading queue
+		// I'm currently handling in the app side, by checking if the return value is a NULL_INDEX16
+		while(new_tex_i == NULL_INDEX16)
+		{
+			new_tex_i = unsafe_find_first_available_i(dx_assets->textures_list_b, ARRAYCOUNT(dx_assets->textures_list_b));
+		}
+	#endif
 	Dx11_texture_view** texture_view = &dx_assets->textures_list[new_tex_i];
+
+	//TODO: if the function above failed, go to sleep and try again after the main thread has released 1 of the textures
 
    u16 new_tex_info_i = find_first_available_i(memory->tex_infos_b, ARRAYCOUNT(memory->tex_infos_b));
 	Tex_info* tex_info = &memory->tex_infos[new_tex_info_i];
@@ -57,6 +87,8 @@ FUNCTION_TYPE_WORK_CALLBACK(threaded_request_tex_from_file)
 
 		
 	tex_surface.data = stbi_load(temp_buffer, (int*)&tex_surface.width, (int*)&tex_surface.height, &comp, STBI_rgb_alpha);
+	const char* error_reason = stbi_failure_reason(); error_reason;
+	//TODO: if error_reason == "unknown image type"
 	ASSERT(tex_surface.data);
 
 	
@@ -111,6 +143,7 @@ process_asset_requests(Platform_data* memory,
 				ASSERT(win_file_exists(request->filename.text));
 				ASSERT(request->p_uid);
 
+				// I probably made this permanent request due to it having to be read from the other threads
             Asset_request* permanent_request = ARENA_PUSH_STRUCT(assets_arena, Asset_request);
             *permanent_request = *request;
             permanent_request->filename.text = (char*)arena_push_size(assets_arena, request->filename.length+1);
@@ -135,13 +168,12 @@ process_asset_requests(Platform_data* memory,
 			case ASSET_REQUEST_FREE_TEX:
 			{
 				Tex_info* texinfo = &memory->tex_infos[request->free_uid];
-				
 				ASSERT(texinfo->texture_uid);
-				Dx11_texture_view** texture_view = &dx_assets->textures_list[texinfo->texture_uid];
-				dx_assets->textures_list_b[texinfo->texture_uid] = 0;
-				(*texture_view)->Release();
+				(dx_assets->textures_list[texinfo->texture_uid])->Release();
+				dx_assets->textures_list[texinfo->texture_uid] = 0;
+				InterlockedCompareExchange16(&dx_assets->textures_list_b[texinfo->texture_uid], 0, 1);
+				
 
-				*texture_view = 0;
 				*texinfo = {0};
 				InterlockedCompareExchange16(&memory->tex_infos_b[request->free_uid], 0, 1);
 
