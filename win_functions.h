@@ -60,103 +60,6 @@ win_utf8_to_wchar(char* utf8_string, wchar_t* wchar_buffer, u32 buffer_size)
 	);
 }
 
-internal String
-win_get_current_directory(Memory_arena* arena)
-{
-	String result;
-	wchar_t wchar_buffer [MAX_PATH] = {0}; 
-	
-	result.length = GetCurrentDirectoryW(MAX_PATH, wchar_buffer);
-	ASSERT(result.length);
-	
-	// converting \\ to /
-	UNTIL(char_i, result.length)
-	{
-		if(wchar_buffer[char_i] == '\\') wchar_buffer[char_i] = '/';
-	}
-
-	wchar_buffer[result.length] = '/';
-	result.length++;
-
-	char utf_buffer [MAX_PATH] = {0};
-	win_wchar_to_utf8(wchar_buffer, utf_buffer, MAX_PATH);
-
-	result.text = (char*)arena_push_data(arena, utf_buffer, result.length);
-
-	return result;
-}
-
-internal bool
-win_list_all_files(String filename_to_search_for, LIST(Filename, filenames_list), Memory_arena* arena)
-{
-	ASSERT(filename_to_search_for.length < MAX_PATH);
-	wchar_t temp_bufferw [MAX_PATH] = {0};
-	UNTIL(i, filename_to_search_for.length)
-	{
-		temp_bufferw[i] = filename_to_search_for.text[i];
-	}
-	temp_bufferw[filename_to_search_for.length] = '*';
-
-   WIN32_FIND_DATAW find_data;
-	HANDLE file_handle = FindFirstFileW(temp_bufferw, &find_data);
-	if(file_handle == INVALID_HANDLE_VALUE)
-	{
-		DWORD error = GetLastError();
-		ASSERT(
-			error == ERROR_FILE_NOT_FOUND 
-		|| error == ERROR_PATH_NOT_FOUND
-		|| error == ERROR_INVALID_NAME
-		);
-		return false;
-	}
-
-	DWORD error = GetLastError();
-	while(true)
-	{
-		Filename* current_filename = 0;
-		PUSH_BACK(filenames_list, arena, current_filename);
-
-		int wchar_filename_length = 0; 
-
-		for(u32 char_i = 0; char_i < MAX_PATH && find_data.cFileName[char_i]; char_i++)
-		{
-			wchar_filename_length++;
-		}
-
-		current_filename->name.text = (char*)arena_push_size(arena, 0);
-		char temp_buffer [2*MAX_PATH] = {0};
-		
-
-		// 2 ways to do this. windows: WideCharToMultiByte or stbi: stbi_convert_wchar_to_utf8
-		u32 utf8_string_length = win_wchar_to_utf8(find_data.cFileName, temp_buffer, 2*MAX_PATH);
-
-		// u32 multi_byte_string_length = stbi_convert_wchar_to_utf8(temp_buffer3, 2*MAX_PATH, find_data.cFileName);
-
-
-		// u32 utf8_string_length = stbi_convert_wchar_to_utf8(temp_buffer, 2*MAX_PATH, find_data.cFileName);
-
-		arena_push_data(arena, temp_buffer, utf8_string_length);
-		current_filename->name.length = utf8_string_length;
-		
-		if(find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
-		{
-			current_filename->is_folder = true;
-		}
-
-		if(!FindNextFileW(file_handle, &find_data))
-		{
-			error = GetLastError();
-			ASSERT(error == ERROR_NO_MORE_FILES);
-			break;
-		}
-	}
-
-   FindClose(file_handle);
-
-	return true;
-}
-
-
 internal bool
 win_file_exists(char* filename)
 {
@@ -178,16 +81,16 @@ win_file_exists(char* filename)
 	}else{
 		return true;
 	}
-//   DWORD file_attributes = GetFileAttributesA(filename);
+	// DWORD file_attributes = GetFileAttributesA(filename);
 
-//   if(file_attributes != INVALID_FILE_ATTRIBUTES && 
-//          !(file_attributes & FILE_ATTRIBUTE_DIRECTORY))
-// 	{
-// 		return true;	
-// 	}else{
-// 		DWORD error = GetLastError();error;
-// 		return false;
-// 	}
+	// if(file_attributes != INVALID_FILE_ATTRIBUTES && 
+	// 		!(file_attributes & FILE_ATTRIBUTE_DIRECTORY))
+	// {
+	// 	return true;	
+	// }else{
+	// 	DWORD error = GetLastError();error;
+	// 	return false;
+	// }
 }
 
 global_variable File_data packed_data = {0};
@@ -376,7 +279,7 @@ win_filetime_to_systemtime(Win_filetime filetime)
 #endif
 
 internal Datetime
-win_systemtime_to_date(SYSTEMTIME* win_systemtime)
+win_systemtime_to_datetime(SYSTEMTIME* win_systemtime)
 {
 	Datetime result;
 	result.year = win_systemtime->wYear;
@@ -411,7 +314,7 @@ win_get_current_date()
 {
 	SYSTEMTIME systemtime;
 	GetLocalTime(&systemtime);
-	return win_systemtime_to_date(&systemtime);
+	return win_systemtime_to_datetime(&systemtime);
 }
 
 internal Datetime
@@ -442,7 +345,7 @@ win_offset_date_by_days(Datetime* date, s32 days)
 		SYSTEMTIME systemtime_result;
 		FileTimeToSystemTime(&filetime_result, &systemtime_result);
 
-		Datetime result = win_systemtime_to_date(&systemtime_result);
+		Datetime result = win_systemtime_to_datetime(&systemtime_result);
 
 		return result;	
 	}
@@ -451,6 +354,114 @@ win_offset_date_by_days(Datetime* date, s32 days)
 		return *date;
 	}
 }
+
+
+internal String
+win_get_current_directory(Memory_arena* arena)
+{
+	String result;
+	wchar_t wchar_buffer [MAX_PATH] = {0}; 
+	
+	result.length = GetCurrentDirectoryW(MAX_PATH, wchar_buffer);
+	ASSERT(result.length);
+	
+	// converting \\ to /
+	UNTIL(char_i, result.length)
+	{
+		if(wchar_buffer[char_i] == '\\') wchar_buffer[char_i] = '/';
+	}
+
+	wchar_buffer[result.length] = '/';
+	result.length++;
+
+	char utf_buffer [MAX_PATH] = {0};
+	win_wchar_to_utf8(wchar_buffer, utf_buffer, MAX_PATH);
+
+	result.text = (char*)arena_push_data(arena, utf_buffer, result.length);
+
+	return result;
+}
+
+internal bool
+win_list_all_files(String filename_to_search_for, LIST(Filename, filenames_list), Memory_arena* arena)
+{
+	ASSERT(filename_to_search_for.length < MAX_PATH);
+	wchar_t temp_bufferw [MAX_PATH] = {0};
+	UNTIL(i, filename_to_search_for.length)
+	{
+		temp_bufferw[i] = filename_to_search_for.text[i];
+	}
+	temp_bufferw[filename_to_search_for.length] = '*';
+
+   WIN32_FIND_DATAW find_data;
+	HANDLE file_handle = FindFirstFileW(temp_bufferw, &find_data);
+	if(file_handle == INVALID_HANDLE_VALUE)
+	{
+		DWORD error = GetLastError();
+		ASSERT(
+			error == ERROR_FILE_NOT_FOUND 
+		|| error == ERROR_PATH_NOT_FOUND
+		|| error == ERROR_INVALID_NAME
+		);
+		return false;
+	}
+
+	DWORD error = GetLastError();
+	while(true)
+	{
+		Filename* current_filename = 0;
+		PUSH_BACK(filenames_list, arena, current_filename);
+
+		int wchar_filename_length = 0; 
+
+		for(u32 char_i = 0; char_i < MAX_PATH && find_data.cFileName[char_i]; char_i++)
+		{
+			wchar_filename_length++;
+		}
+
+		current_filename->name.text = (char*)arena_push_size(arena, 0);
+		char temp_buffer [2*MAX_PATH] = {0};
+		
+
+		// 2 ways to do this. windows: WideCharToMultiByte or stbi: stbi_convert_wchar_to_utf8
+		u32 utf8_string_length = win_wchar_to_utf8(find_data.cFileName, temp_buffer, 2*MAX_PATH);
+
+		// u32 multi_byte_string_length = stbi_convert_wchar_to_utf8(temp_buffer3, 2*MAX_PATH, find_data.cFileName);
+
+
+		// u32 utf8_string_length = stbi_convert_wchar_to_utf8(temp_buffer, 2*MAX_PATH, find_data.cFileName);
+
+		arena_push_data(arena, temp_buffer, utf8_string_length);
+		current_filename->name.length = utf8_string_length;
+
+
+		SYSTEMTIME temp_systemtime; 
+		FileTimeToSystemTime(&find_data.ftCreationTime, &temp_systemtime);
+
+		current_filename->creation_date = win_systemtime_to_datetime(&temp_systemtime);
+
+		
+		current_filename->size = (find_data.nFileSizeHigh * (MAXDWORD+1)) + find_data.nFileSizeLow;
+
+		
+		if(find_data.dwFileAttributes & FILE_ATTRIBUTE_DIRECTORY)
+		{
+			current_filename->is_folder = true;
+		}
+
+		if(!FindNextFileW(file_handle, &find_data))
+		{
+			error = GetLastError();
+			ASSERT(error == ERROR_NO_MORE_FILES);
+			break;
+		}
+	}
+
+   FindClose(file_handle);
+
+	return true;
+}
+
 
 // if this fails return value is NULL
 internal HMODULE

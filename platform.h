@@ -223,23 +223,6 @@ set_input(s32* holding_keys, u8* pressed_inputs, Input_keyboard_indices k, b32 i
 	}
 }
 
-struct Filename
-{
-	String name;
-	b8 is_folder;
-};
-
-struct FILE_IO_FUNCTIONS
-{
-	FUNCTION_TYPE_READ_FILE(read_file);
-	FUNCTION_TYPE_WRITE_FILE(write_file);
-	FUNCTION_TYPE_FILE_EXISTS(file_exists);
-	FUNCTION_TYPE_DELETE_FILE(delete_file);
-	FUNCTION_TYPE_COPY_FILE(copy_file);
-	FUNCTION_TYPE_GET_CURRENT_DIRECTORY(get_current_directory);
-	FUNCTION_TYPE_LIST_ALL_FILES(list_all_files);
-};
-
 struct Date
 {
 	u16 year;
@@ -280,6 +263,26 @@ internal b32 operator==(Date d1, Date d2)
 {
 	return compare_dates(d1, d2);
 }
+
+struct Filename
+{
+	String name;
+	b8 is_folder;
+	Datetime creation_date;
+	u64 size;
+};
+
+struct FILE_IO_FUNCTIONS
+{
+	FUNCTION_TYPE_READ_FILE(read_file);
+	FUNCTION_TYPE_WRITE_FILE(write_file);
+	FUNCTION_TYPE_FILE_EXISTS(file_exists);
+	FUNCTION_TYPE_DELETE_FILE(delete_file);
+	FUNCTION_TYPE_COPY_FILE(copy_file);
+	FUNCTION_TYPE_GET_CURRENT_DIRECTORY(get_current_directory);
+	FUNCTION_TYPE_LIST_ALL_FILES(list_all_files);
+};
+
 
 // REQUESTS STRUCTS AND FUNCTIONS BOILERPLATE
 // TODO: UNIFY ALL THIS FUNCTIONS AND STRUCTS TO BE JUST ONE THING
