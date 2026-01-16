@@ -17,8 +17,8 @@ typedef FUNCTION_TYPE_WORK_CALLBACK(Work_callback);
 
 
 // EXPORTED FUNCTIONS
-#define FUNCTION_TYPE_UPDATE(...) void (*__VA_ARGS__)(Platform_data*, Audio, Int2)
-#define FUNCTION_TYPE_RENDER(...) void (*__VA_ARGS__)(Platform_data*, LIST(Renderer_request,), Int2 )
+#define FUNCTION_TYPE_UPDATE(...) void (*__VA_ARGS__)(Platform_data*, Audio)
+#define FUNCTION_TYPE_RENDER(...) void (*__VA_ARGS__)(Platform_data*)
 #define FUNCTION_TYPE_CLOSE(...) void (*__VA_ARGS__)(Platform_data*)
 
 // WIN FUNCTIONS
@@ -408,110 +408,6 @@ struct Asset_request
 	};
 };
 
-struct WIN_TIME_FUNCTIONS
-{
-	FUNCTION_TYPE_GET_CURRENT_DATE(get_current_date);
-	FUNCTION_TYPE_OFFSET_DATE_BY_DAYS(offset_date_by_days);
-};
-
-struct MULTITHREADING_FUNCTIONS
-{
-	FUNCTION_TYPE_PUSH_WORK_QUEUE_ENTRY(push_work_queue_entry);
-};
-
-
-struct Platform_data
-{
-	void* app_data;
-	FILE_IO_FUNCTIONS file_io;
-	WIN_TIME_FUNCTIONS win_time;
-	MULTITHREADING_FUNCTIONS multithreading;
-	void* work_queue;
-
-	u64 win_time_ns;
-
-	b32 close_app;
-
-	b32 is_initialized;
-	// I honestly don't remember why was this for
-	// b32 renderer_needs_resizing; // this is just for when i want to change the rendering resolution
-
-	Memory_arena* permanent_arena;
-	Memory_arena* temp_arena;
-
-	Input_keyboard_indices last_pressed_key;
-	int last_pressed_key_last_repeat_value;
-	f32 keyboard_repeat_delay;
-	f32 keyboard_repeat_cooldown;
-
-	
-	LIST(Asset_request, asset_requests);	
-
-	RNG rng;
-
-	Color bg_color;
-
-	Int2 screen_size; //THIS IS THE SIZE OF THE SCREEN AS THE NAME SAYS YOU DUMB FU**ER
-	f32 fov;
-	b32 enforce_aspect_ratio;
-	f32 aspect_ratio;
-	f32 depth_effect; // this is redundant with the fov
-
-	#define MAX_TEXINFOS 1000
-
-	Tex_info tex_infos[MAX_TEXINFOS];
-	volatile b16 tex_infos_b[MAX_TEXINFOS];
-	LIST(Font, fonts_list);
-	
-	struct
-	{// this is meant to be passed to the shader 
-		b32 perspective_on;
-		f32 time_s;
-		f32 depth_writing;
-	};
-
-	User_input* input;
-	User_input* holding_inputs;
-	u8 input_chars_buffer[64];
-	u32 input_chars_buffer_current_size;
-
-
-	b32 is_window_in_focus;
-	b32 lock_mouse;
-
-	f32 update_hz;
-
-	f32 old_time_s;
-	f32 fixed_dt;
-};
-
-
-
-internal u16
-get_next_available_index(u8* array, u32 arraylen, u16* last_used_index)
-{
-	ASSERT(arraylen <= 0xffff);
-	u16 temp = 0;
-	if(!last_used_index)
-	{
-		last_used_index = &temp;
-	}
-	u16 last_index = ((*last_used_index))%arraylen;
-
-	UNTIL(i, arraylen)
-	{
-		u16 index = (last_index+i)%(u16)arraylen;
-		if(!array[index])
-		{
-			array[index] = 1;
-			*last_used_index = index;
-			return index;
-		}
-	}
-	ASSERT(false);
-	return false;
-}
-
 
 // this MUST match the register buffer indices in the shader code
 enum Shader_constant_buffer_register_index : u16
@@ -648,6 +544,114 @@ struct Renderer_request{
 	};
 };
 #define CALCULATE_INSTANCES_COUNT (u16)((temp_arena->data+temp_arena->used - (u8*)request->instancing_data.instances)/sizeof(Instance_data))
+
+struct WIN_TIME_FUNCTIONS
+{
+	FUNCTION_TYPE_GET_CURRENT_DATE(get_current_date);
+	FUNCTION_TYPE_OFFSET_DATE_BY_DAYS(offset_date_by_days);
+};
+
+struct MULTITHREADING_FUNCTIONS
+{
+	FUNCTION_TYPE_PUSH_WORK_QUEUE_ENTRY(push_work_queue_entry);
+};
+
+
+struct Platform_data
+{
+	void* app_data;
+	FILE_IO_FUNCTIONS file_io;
+	WIN_TIME_FUNCTIONS win_time;
+	MULTITHREADING_FUNCTIONS multithreading;
+	void* work_queue;
+
+	u64 win_time_ns;
+
+	b32 close_app;
+
+	b32 is_initialized;
+	// I honestly don't remember why was this for
+	// b32 renderer_needs_resizing; // this is just for when i want to change the rendering resolution
+
+	Memory_arena* permanent_arena;
+	Memory_arena* temp_arena;
+
+	Input_keyboard_indices last_pressed_key;
+	int last_pressed_key_last_repeat_value;
+	f32 keyboard_repeat_delay;
+	f32 keyboard_repeat_cooldown;
+
+	
+	LIST(Asset_request, asset_requests);	
+
+	RNG rng;
+
+	Color bg_color;
+
+	LIST(Renderer_request, render_list);
+
+	Int2 client_size;
+
+	Int2 screen_size; //THIS IS THE SIZE OF THE SCREEN AS THE NAME SAYS YOU DUMB FU**ER
+	f32 fov;
+	b32 enforce_aspect_ratio;
+	f32 aspect_ratio;
+	f32 depth_effect; // this is redundant with the fov
+
+	#define MAX_TEXINFOS 1000
+
+	Tex_info tex_infos[MAX_TEXINFOS];
+	volatile b16 tex_infos_b[MAX_TEXINFOS];
+	LIST(Font, fonts_list);
+	
+	struct
+	{// this is meant to be passed to the shader 
+		b32 perspective_on;
+		f32 time_s;
+		f32 depth_writing;
+	};
+
+	User_input* input;
+	User_input* holding_inputs;
+	u8 input_chars_buffer[64];
+	u32 input_chars_buffer_current_size;
+
+
+	b32 is_window_in_focus;
+	b32 lock_mouse;
+
+	f32 update_hz;
+
+	f32 old_time_s;
+	f32 fixed_dt;
+};
+
+
+
+internal u16
+get_next_available_index(u8* array, u32 arraylen, u16* last_used_index)
+{
+	ASSERT(arraylen <= 0xffff);
+	u16 temp = 0;
+	if(!last_used_index)
+	{
+		last_used_index = &temp;
+	}
+	u16 last_index = ((*last_used_index))%arraylen;
+
+	UNTIL(i, arraylen)
+	{
+		u16 index = (last_index+i)%(u16)arraylen;
+		if(!array[index])
+		{
+			array[index] = 1;
+			*last_used_index = index;
+			return index;
+		}
+	}
+	ASSERT(false);
+	return false;
+}
 
 
 struct Sound_playback_request

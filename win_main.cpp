@@ -587,9 +587,9 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 	// SETTING WINDOW PROPERTIES TO ACCESS THEM FROM THE FUNCTION_WINDOW_PROCEDURE
 
 
-	Int2 client_size = win_get_client_sizes(window);
+	memory.client_size = win_get_client_sizes(window);
 	SetPropA(window, "enforce_aspect_ratio", &memory.enforce_aspect_ratio);
-	SetPropA(window, "client_size", &client_size);
+	SetPropA(window, "client_size", &memory.client_size);
 	SetPropA(window, "close_app", &memory.close_app);
 	
 
@@ -904,7 +904,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 		initial_100ns = (LONGLONG)initial_time.dwLowDateTime + ((LONGLONG)(initial_time.dwHighDateTime) << 32LL);
 	}
 	// Int2 smaller_client_size = {1600, 900};
-	memory.aspect_ratio = (((f32)client_size.x) / client_size.y);
+	memory.aspect_ratio = (((f32)memory.client_size.x) / memory.client_size.y);
 	
 	// MAIN LOOP ________________________________________________________________________________________________________________________
 
@@ -932,12 +932,12 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 		memory.keyboard_repeat_cooldown = 1 / keyboard_repeat_rate;
 	}
 
-	
-	LIST(Renderer_request, render_list) = {0};
+	CLEAR_LIST(memory.render_list);
+
    // PRE-PARING FOR RENDERING THIS FRAME
    {		
 		Renderer_request* request;
-		PUSH_BACK(render_list, temp_arena, request);
+		PUSH_BACK(memory.render_list, temp_arena, request);
 
 		request->type_flags = 0;
 		
@@ -955,7 +955,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 		request->type_flags |= RENDER_REQUEST_CHANGE_VIEWPORT_SIZE;
 		{
 			request->resize_depth_stencil_view_uid = 0;
-			request->new_viewport_size = client_size;
+			request->new_viewport_size = memory.client_size;
 		}	
 
 		request->type_flags |= RENDER_REQUEST_SET_RENDER_TARGET_AND_DEPTH_STENCIL;
@@ -979,7 +979,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 			request->blend_state_uid = 0;
 		}
 
-		PUSH_BACK(render_list, temp_arena, request);
+		PUSH_BACK(memory.render_list, temp_arena, request);
 		request->type_flags = RENDER_REQUEST_MODIFY_RENDERER_VARIABLE;
 
 		//WORLD VIEW MATRIX
@@ -989,7 +989,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 			request->renderer_variable.new_data = world_view;
          *world_view = matrix_translation( v3(0,0,0) );
 		}
-		PUSH_BACK(render_list, temp_arena, request);
+		PUSH_BACK(memory.render_list, temp_arena, request);
 		request->type_flags = RENDER_REQUEST_MODIFY_RENDERER_VARIABLE;
 		// WORLD PROJECTION
 		{
@@ -1091,8 +1091,8 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 
 			input.cursor_speed = {0};
 			input.cursor_pixels_pos = {mousep.x, mousep.y};
-			f32 px = ((f32)(mousep.x - client_center_pos.x))/client_size.x;
-			f32 py = -((f32)(mousep.y - client_center_pos.y))/client_size.y;
+			f32 px = ((f32)(mousep.x - client_center_pos.x))/memory.client_size.x;
+			f32 py = -((f32)(mousep.y - client_center_pos.y))/memory.client_size.y;
 			input.cursor_speed.x = (2*px) - input.cursor_pos.x;
 			input.cursor_speed.y = (2*py) - input.cursor_pos.y;
 			if(memory.lock_mouse)
@@ -1458,15 +1458,15 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 		}
 		b32 window_size_just_changed = false;
 		Int2 current_client_size = win_get_client_sizes(window);
-		if(client_size.x != current_client_size.x || client_size.y != current_client_size.y)
+		if(memory.client_size.x != current_client_size.x || memory.client_size.y != current_client_size.y)
 		{
 			window_size_just_changed = true;
-			client_size = current_client_size;
+			memory.client_size = current_client_size;
 		}
 
 		if(apps[current_app].update)
 		{
-			apps[current_app].update(&memory, {playback_array, sample_t}, client_size);
+			apps[current_app].update(&memory, {playback_array, sample_t});
 		}
 
 		process_asset_requests(
@@ -1488,7 +1488,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 
 		if(apps[current_app].render)
 		{
-			apps[current_app].render(&memory, render_list, client_size);
+			apps[current_app].render(&memory);
 		}
 
 		
@@ -1622,12 +1622,12 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 			
 			//TODO: be careful with 8k monitors
 			// why did i limit it to 4k again??
-			if(client_size.x > 0 && client_size.y > 0 
-			// && client_size.x < 4000 && client_size.y < 4000
+			if(memory.client_size.x > 0 && memory.client_size.y > 0 
+			// && memory.client_size.x < 4000 && memory.client_size.y < 4000
 			){
-				ASSERT(client_size.x < 4000 && client_size.y < 4000);
-				memory.aspect_ratio = (f32)client_size.x / (f32) client_size.y;
-				hr = dx->swap_chain->ResizeBuffers(0, client_size.x, client_size.y, DXGI_FORMAT_UNKNOWN, 0);
+				ASSERT(memory.client_size.x < 4000 && memory.client_size.y < 4000);
+				memory.aspect_ratio = (f32)memory.client_size.x / (f32) memory.client_size.y;
+				hr = dx->swap_chain->ResizeBuffers(0, memory.client_size.x, memory.client_size.y, DXGI_FORMAT_UNKNOWN, 0);
 				ASSERTHR(hr);
 
 				create_screen_render_target_view(dx, &screen_render_target->target_view);
@@ -1639,7 +1639,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 					resize_ds->view->Release();
 					resize_ds->view = 0;
 				}
-				dx11_create_depth_stencil_view(dx, &resize_ds->view, client_size.x, client_size.y);
+				dx11_create_depth_stencil_view(dx, &resize_ds->view, memory.client_size.x, memory.client_size.y);
 				dx->context->ClearDepthStencilView(
 					resize_ds->view,
 					D3D11_CLEAR_DEPTH | D3D11_CLEAR_STENCIL,
@@ -1687,7 +1687,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 			
 			u32 count = 0;
 
-			FOREACH(Renderer_request, request, render_list)
+			FOREACH(Renderer_request, request, memory.render_list)
 			{
 				ASSERT(request->type_flags); //assert at least one flag is set
 				count++;
@@ -1992,7 +1992,7 @@ wWinMain(HINSTANCE h_instance, HINSTANCE h_prev_instance, PWSTR cmd_line, int cm
 		}
 		
 		//CLEARING RENDER LIST
-		CLEAR_LIST(render_list);
+		CLEAR_LIST(memory.render_list);
 
 		// RESETTING TEMP ARENA
 		
